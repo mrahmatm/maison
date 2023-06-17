@@ -278,9 +278,9 @@
                 $auth_type = "PER";
                 require 'connect.php';
             }
-
+            $targetDept = $this->dept_code;
             $pdo_statement = $conn->prepare("SELECT * FROM department WHERE dept_code=:targetCode");
-            $pdo_statement->execute([':targetCode'=>$this->dept_code]);
+            $pdo_statement->execute([':targetCode'=>$targetDept]);
             $result = $pdo_statement->fetch();
 
             if($result > 0){
@@ -484,37 +484,140 @@
         public $q_type;
         public $patient_ICNum;
         public $svc_code;
+
+        function __construct($id, $type, $patient_ICNum, $svc_code="NULL"){
+            $this->q_ID = $id;
+            $this->q_before = "NULL";
+            $this->q_after = "NULL";
+            $this->q_type = $type;
+            $this->patient_ICNum = $patient_ICNum;
+            if($svc_code != "NULL")
+                $this->svc_code = $svc_code;
+        }
+
+        function setBefore($beforeID){
+            $this->q_before = $beforeID;
+        }
+
+        function setAfter($afterID){
+            $this->q_after = $afterID;
+        }
+
+    }
+    
+    class Node{
+        public $before;
+        public $after;
+        public $id;
+
+        function __construct($queue){
+            $this->before = $queue->q_before ?? null;
+            $this->after = $queue->q_after ?? null;
+            $this->id = $queue->q_ID;
+        }
     }
 
+    class LinkedList {
+        private $head;
+        private $tail;
+    
+        public function __construct() {
+            $this->head = null;
+            $this->tail = null;
+        }
+    
+        public function insertAtHead($queue) {
+            $newNode = new Node($queue);
+            $newNode->after = $this->head;
+            if ($this->head !== null) {
+                $this->head->before = $newNode;
+            }
+            $this->head = $newNode;
+            if ($this->tail === null) {
+                $this->tail = $newNode;
+            }
+        }
+    
+        public function insertAtTail($queue) {
+            $newNode = new Node($queue);
+            $newNode->before = $this->tail;
+            if ($this->tail !== null) {
+                $this->tail->after = $newNode;
+            }
+            $this->tail = $newNode;
+            if ($this->head === null) {
+                $this->head = $newNode;
+            }
+        }
+    
+        public function getSize() {
+            $count = 0;
+            $currentNode = $this->head;
+            while (@$currentNode !== null) {
+                if (@$currentNode->id !== null) {
+                    $count++;
+                }
+                @$currentNode = $currentNode->after;
+            }
+            return $count;
+        }
+
+        public function displayForward() {
+            $currentNode = $this->head;
+            while ($currentNode !== null) {
+                echo @$currentNode->id . " ";
+                @$currentNode = $currentNode->after;
+            }
+            echo "<br>";
+        }
+    }
+    
     class Service{
         public $svc_code;
         public $svc_desc;
         public $svc_fee;
         public $dept_code;
 
-        function __construct($code, $desc, $fee, $dept_code){
+        function __construct($code, $desc, $fee, $dept_code="NULL"){
             $this->svc_code = $code;
             $this->svc_desc = $desc;
             $this->svc_fee = $fee;
-            $this->dept_code = $dept_code;
+            if($dept_code != "NULL")
+                $this->dept_code = $dept_code;
         }
 
-        function addService($conn){
+        function checkSvcCode($conn){
+                if($conn == null){
+                    $auth_type = "PER";
+                    require 'connect.php';
+                }
+    
+                $pdo_statement = $conn->prepare("SELECT * FROM service WHERE svc_code=:target");
+                    $pdo_statement->execute([':target'=>$this->svc_code]);
+                    $result = $pdo_statement->fetch();
+        
+                    if($result > 0){
+                        return 1;
+                    }else{
+                        return 0;
+                    }
+        }
+
+        function addService($conn, $targetDept){
             if($conn == null){
                 $auth_type = "PER";
                 require 'connect.php';
             }
 
-            if($newDept->checkDeptCode($conn) == 0){
+            if($this->checkSvcCode($conn) == 0 && $targetDept->checkDeptCode($conn) > 0){
                 $pdo_statement = $conn->prepare("INSERT INTO
-                    department(dept_code, dept_name, dept_desc, dept_headCount)
-                    VALUES (:dept_code, :dept_name, :dept_desc, :dept_headCount)");
+                    service(svc_code, svc_desc, svc_fee, dept_code)
+                    VALUES (:svc_code, :svc_desc, :svc_fee, :dept_code)");
             if($pdo_statement->execute([
-                ':dept_code'=>$newDept->dept_code,
-                ':dept_name'=>$newDept->dept_name,
-                ':dept_desc'=>$newDept->dept_desc,
-                ':dept_headCount'=>0]))
-                $newDept->refreshDeptHeadCount($conn);
+                ':svc_code'=>$this->svc_code,
+                ':svc_desc'=>$this->svc_desc,
+                ':svc_fee'=>$this->svc_fee,
+                ':dept_code'=>$targetDept->dept_code]))
                 return 1;
             }else{
                 return 0;

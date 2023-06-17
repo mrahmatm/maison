@@ -69,6 +69,22 @@
         return $output;
     }
 
+    function checkQueueExists($conn, $type){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        
+        $pdo_statement = $conn->prepare("SELECT * FROM lane WHERE lane_type=:target");
+        $pdo_statement->execute([':target'=>$type]);
+        $result = $pdo_statement->fetch(PDO::FETCH_LAZY);
+        if($result != NULL)
+            return 1;
+        else
+            return 0;
+    }
+
+
 
 
 
