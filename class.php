@@ -485,10 +485,9 @@
         public $patient_ICNum;
         public $svc_code;
 
-        function __construct($id, $type, $patient_ICNum, $svc_code="NULL"){
-            $this->q_ID = $id;
-            $this->q_before = "NULL";
-            $this->q_after = "NULL";
+        function __construct($type, $patient_ICNum, $svc_code="NULL"){
+            $this->q_ID=randomNumber(3);
+            //$this->q_ID = $id;
             $this->q_type = $type;
             $this->patient_ICNum = $patient_ICNum;
             if($svc_code != "NULL")
@@ -503,23 +502,59 @@
             $this->q_after = $afterID;
         }
 
+        function resetID(){
+            $this->q_ID = randomNumber(3);
+        }
+
+        function setID($id){
+            $this->q_ID = $id;
+        }
+
+        public function toString() {
+            $output = "ID: " . $this->q_ID . "<br>";
+            $output .= "Type: " . ($this->q_type ?? "NULL") . "<br>";
+            $output .= "Patient ICNum: " . ($this->patient_ICNum ?? "NULL") . "<br>";
+            $output .= "Service Code: " . ($this->svc_code ?? "NULL") . "<br>";
+            $output .= "Before: " . ($this->q_before ?? "NULL") . "<br>";
+            $output .= "After: " . ($this->q_after ?? "NULL") . "<br>";
+            $output .= "--------------<br>";
+        
+            return $output;
+        }
+        
+
     }
     
     class Node{
         public $before;
         public $after;
-        public $id;
+        public $data;
 
         function __construct($queue){
-            $this->before = $queue->q_before ?? null;
-            $this->after = $queue->q_after ?? null;
-            $this->id = $queue->q_ID;
+            $this->before = $queue->q_before;
+            $this->after = $queue->q_after;
+            $this->data = $queue;
+        }
+
+        public function toString() {
+            $output = "Node:\n";
+            $output .= "Before: " . $this->before . "\n";
+            $output .= "After: " . $this->after . "\n";
+            $output .= "Data:\n";
+    
+            $queue = $this->data;
+            $output .= "ID: " . $queue->q_ID . "\n";
+            $output .= "Type: " . $queue->q_type . "\n";
+            $output .= "Patient ICNum: " . $queue->patient_ICNum . "\n";
+            $output .= "Service Code: " . $queue->svc_code . "\n";
+    
+            return $output;
         }
     }
 
     class LinkedList {
-        private $head;
-        private $tail;
+        public $head;
+        public  $tail;
     
         public function __construct() {
             $this->head = null;
@@ -537,18 +572,44 @@
                 $this->tail = $newNode;
             }
         }
-    
+        
         public function insertAtTail($queue) {
             $newNode = new Node($queue);
-            $newNode->before = $this->tail;
-            if ($this->tail !== null) {
-                $this->tail->after = $newNode;
-            }
-            $this->tail = $newNode;
-            if ($this->head === null) {
+        
+            if ($this->tail === null) {
                 $this->head = $newNode;
+                $this->tail = $newNode;
+            } else {
+                $newNode->before = $this->tail;
+                $newNode->after = null; // Set the "after" value of the new node to null since it's being inserted at the tail
+        
+                // Update the "after" value of the previous tail to the address of the new tail
+                $this->tail->data->setAfter($newNode->data->q_ID); // Updated line
+        
+                $this->tail->after = $newNode; // Updated line
+                $this->tail = $newNode;
             }
         }
+
+        public function removeHead() {
+            if ($this->head === null) {
+                return null; // Empty list, nothing to remove
+            }
+        
+            $removedNode = $this->head;
+        
+            if ($this->head === $this->tail) {
+                // Only one node in the list
+                $this->head = null;
+                $this->tail = null;
+            } else {
+                $this->head = $this->head->after;
+                $this->head->data->setBefore(null); // Reset the "before" value of the new head to null
+            }
+        
+            return $removedNode->data; // Return the data of the removed node if needed
+        }
+        
     
         public function getSize() {
             $count = 0;
@@ -562,6 +623,73 @@
             return $count;
         }
 
+        public function getTail(){
+            return $this->tail;
+        }
+
+        public function getNodeById($id) {
+            $currentNode = $this->head;
+            while ($currentNode !== null) {
+                if ($currentNode->id === $id) {
+                    return $currentNode;
+                }
+                $currentNode = $currentNode->after;
+            }
+            return null; // Node not found
+        }
+
+        public function insertAfter($newNode, $afterID) {
+            $current = $this->head;
+    
+            while ($current !== null) {
+                $queue = $current->data;
+    
+                if ($queue->q_ID === $afterID) {
+                    // Update new node's links
+                    $newNode->setBefore($queue->q_ID);
+                    $newNode->setAfter($queue->q_after);
+    
+                    // Update the next node's links
+                    if ($queue->q_after !== null) {
+                        $nextNode = $this->findNodeByID($queue->q_after);
+                        $nextNode->setBefore($newNode->q_ID);
+                    } else {
+                        $this->tail = $newNode;
+                    }
+    
+                    // Update current node's links
+                    $queue->setAfter($newNode->q_ID);
+    
+                    // Connect new node to the linked list
+                    $newNode->next = $current->next;
+                    $current->next = $newNode;
+    
+                    $this->size++;
+                    return true;
+                }
+    
+                $current = $current->next;
+            }
+    
+            return false; // Node not found
+        }
+
+        private function findNodeByID($nodeID) {
+            $current = $this->head;
+    
+            while ($current !== null) {
+                $queue = $current->data;
+    
+                if ($queue->q_ID === $nodeID) {
+                    return $current;
+                }
+    
+                $current = $current->next;
+            }
+    
+            return null; // Node not found
+        }
+
         public function displayForward() {
             $currentNode = $this->head;
             while ($currentNode !== null) {
@@ -569,6 +697,45 @@
                 @$currentNode = $currentNode->after;
             }
             echo "<br>";
+        }
+
+        public function displayAllForward() {
+            $current = $this->head;
+    
+            while ($current !== null) {
+                $queue = $current->data;
+                
+                echo "ID: " . $queue->q_ID . "<br>";
+                echo "Type: " . $queue->q_type . "<br>";
+                echo "Patient ICNum: " . $queue->patient_ICNum . "<br>";
+                echo "Service Code: " . $queue->svc_code . "<br>";
+                echo "Before: " . $queue->q_before . "<br>";
+                echo "After: " . $queue->q_after . "<br>";
+                echo "--------------<br>";
+                
+                $current = $current->after;
+            }
+        }
+
+        public function toString() {
+            $current = $this->head;
+            $output = '';
+    
+            while ($current !== null) {
+                $queue = $current->data;
+    
+                $output .= "ID: " . $queue->q_ID . "\n";
+                $output .= "Type: " . $queue->q_type . "\n";
+                $output .= "Patient ICNum: " . $queue->patient_ICNum . "\n";
+                $output .= "Service Code: " . $queue->svc_code . "\n";
+                $output .= "Before: " . $queue->q_before . "\n";
+                $output .= "After: " . $queue->q_after . "\n";
+                $output .= "--------------\n";
+    
+                $current = $current->after;
+            }
+    
+            return $output;
         }
     }
     
