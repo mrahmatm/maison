@@ -610,15 +610,65 @@
             return $removedNode->data; // Return the data of the removed node if needed
         }
         
+        public function insertAfter($newQueue, $position) {
+            $newNode = new Node($newQueue);
+        
+            if ($position <= 0) {
+                // Insert at the head
+                $newNode->after = $this->head;
+                if ($this->head !== null) {
+                    $this->head->before = $newNode;
+                }
+                $this->head = $newNode;
+                if ($this->tail === null) {
+                    $this->tail = $newNode;
+                }
+            } else {
+                $currentNode = $this->head;
+                $count = 0;
+        
+                while ($currentNode !== null && $count < $position) {
+                    $currentNode = $currentNode->after;
+                    $count++;
+                }
+        
+                if ($currentNode !== null) {
+                    $newNode->after = $currentNode->after;
+                    $newNode->before = $currentNode;
+        
+                    if ($currentNode->after !== null) {
+                        $currentNode->after->before = $newNode;
+                    } else {
+                        $this->tail = $newNode;
+                    }
+        
+                    $currentNode->after = $newNode;
+                } else {
+                    // Position is greater than the list size, insert at the tail
+                    $newNode->before = $this->tail;
+                    $this->tail->after = $newNode;
+                    $this->tail = $newNode;
+                }
+            }
+        
+            if ($newNode->before !== null) {
+                $newNode->data->setBefore($newNode->before->data->q_ID); // Set the "before" value of the new node
+                $newNode->before->data->setAfter($newNode->data->q_ID); // Set the "after" value of the previous node
+            }
+            if ($newNode->after !== null) {
+                $newNode->data->setAfter($newNode->after->data->q_ID); // Set the "after" value of the new node
+                $newNode->after->data->setBefore($newNode->data->q_ID); // Set the "before" value of the next node
+            }
+        
+            return $newNode !== null ? true : -1;
+        }
     
         public function getSize() {
             $count = 0;
             $currentNode = $this->head;
-            while (@$currentNode !== null) {
-                if (@$currentNode->id !== null) {
-                    $count++;
-                }
-                @$currentNode = $currentNode->after;
+            while ($currentNode !== null) {
+                $count++;
+                $currentNode = $currentNode->after;
             }
             return $count;
         }
@@ -637,43 +687,7 @@
             }
             return null; // Node not found
         }
-
-        public function insertAfter($newNode, $afterID) {
-            $current = $this->head;
-    
-            while ($current !== null) {
-                $queue = $current->data;
-    
-                if ($queue->q_ID === $afterID) {
-                    // Update new node's links
-                    $newNode->setBefore($queue->q_ID);
-                    $newNode->setAfter($queue->q_after);
-    
-                    // Update the next node's links
-                    if ($queue->q_after !== null) {
-                        $nextNode = $this->findNodeByID($queue->q_after);
-                        $nextNode->setBefore($newNode->q_ID);
-                    } else {
-                        $this->tail = $newNode;
-                    }
-    
-                    // Update current node's links
-                    $queue->setAfter($newNode->q_ID);
-    
-                    // Connect new node to the linked list
-                    $newNode->next = $current->next;
-                    $current->next = $newNode;
-    
-                    $this->size++;
-                    return true;
-                }
-    
-                $current = $current->next;
-            }
-    
-            return false; // Node not found
-        }
-
+        
         private function findNodeByID($nodeID) {
             $current = $this->head;
     
@@ -791,4 +805,5 @@
             }
         }
     }
+
 ?>

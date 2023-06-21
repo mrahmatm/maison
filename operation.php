@@ -4,12 +4,10 @@
 
     include 'class.php';
     //include 'function.php';
-
-    $newPatient = new patient('000927-10-2521', 'FROHZE', 'mrahmatm@gmail.com', '018-6962570');
-    //$newPatient->patient_name='FROHZE';
-    $updatePatient = new patient('000927-10-2521', 'SEKAI', 'mrahmatm@gmail.com', '018-6962570');
-    
-    $status = $newPatient->insertPatient($conn, $newPatient);
+    $latlng = "5.262336504724555, 103.16524533120848";
+    $latlng1 = "5.262512978963726, 103.1650855825122";
+    $status = setClinicLocation($conn, $latlng1);
 
     var_dump ($status);
+    
 ?>
