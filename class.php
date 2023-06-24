@@ -34,22 +34,22 @@
             }
         }
 
-        function addPatient($conn, $newPatient){
+        function addPatient($conn){
             if($conn == null){
                 $auth_type = "PER";
                 require 'connect.php';
             }
-            if($newPatient->checkICNum($conn) == 0){
+            if($this->checkICNum($conn) == 0){
                 $pdo_statement = $conn->prepare("INSERT INTO
                     patient(patient_ICNum, patient_name, patient_gender, patient_age, patient_email, patient_phoneNum)
                     VALUES (:patient_ICNum, :patient_name, :patient_gender, :patient_age, :patient_email, :patient_phoneNum)");
             if($pdo_statement->execute([
-                ':patient_ICNum'=>$newPatient->patient_ICNum,
-                ':patient_name'=>$newPatient->patient_name,
-                ':patient_gender'=>$newPatient->patient_gender,
-                ':patient_age'=>$newPatient->patient_age,
-                ':patient_email'=>$newPatient->patient_email,
-                ':patient_phoneNum'=>$newPatient->patient_phoneNum]))
+                ':patient_ICNum'=>$this->patient_ICNum,
+                ':patient_name'=>$this->patient_name,
+                ':patient_gender'=>$this->patient_gender,
+                ':patient_age'=>$this->patient_age,
+                ':patient_email'=>$this->patient_email,
+                ':patient_phoneNum'=>$this->patient_phoneNum]))
                 return 1;
             }else{
                 return 0;
@@ -331,12 +331,14 @@
                     $sql = "UPDATE department SET dept_headCount=:newCount WHERE dept_code = :targetValue";
                     $pdo_statement = $conn->prepare($sql);
                     $pdo_statement->execute([':newCount'=>$count, ':targetValue'=>$this->dept_code]);
-                    return $count;
+                    $this->dept_headCount = $count;
+                    //return $count;
                 }else{
                     $sql = "UPDATE department SET dept_headCount=:newCount WHERE dept_code = :targetValue";
                     $pdo_statement = $conn->prepare($sql);
                     $pdo_statement->execute([':newCount'=>0, ':targetValue'=>$this->dept_code]);
-                    return 0;
+                    $this->dept_headCount = 0;
+                    //return 0;
                 }
         }
 
@@ -508,6 +510,10 @@
 
         function setID($id){
             $this->q_ID = $id;
+        }
+
+        function setType($type){
+            $this->q_type = $type;
         }
 
         public function toString() {
@@ -751,6 +757,30 @@
     
             return $output;
         }
+
+        public function toJSON() {
+            $current = $this->head;
+            $data = [];
+    
+            while ($current !== null) {
+                $queue = $current->data;
+    
+                $queueData = [
+                    'ID' => $queue->q_ID,
+                    'Type' => $queue->q_type,
+                    'Patient ICNum' => $queue->patient_ICNum,
+                    'Service Code' => $queue->svc_code,
+                    'Before' => $queue->q_before,
+                    'After' => $queue->q_after
+                ];
+    
+                $data[] = $queueData;
+    
+                $current = $current->after;
+            }
+    
+            return json_encode($data);
+        }
     }
     
     class Service{
@@ -804,6 +834,20 @@
                 return 0;
             }
         }
+    }
+
+    class Appointment{
+        public $q_ID;
+        public $personnel_ID;
+        public $app_datetime;
+
+        function __construct($id, $personnel_ID, $app_datetime){
+            $this->q_ID = $id;
+            $this->personnel_ID = $personnel_ID;
+            $this->app_datetime = $app_datetime;
+        }
+
+        
     }
 
 ?>
