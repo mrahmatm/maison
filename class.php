@@ -51,6 +51,8 @@
                 ':patient_email'=>$this->patient_email,
                 ':patient_phoneNum'=>$this->patient_phoneNum]))
                 return 1;
+            else
+                return -1;
             }else{
                 return 0;
             }
@@ -132,6 +134,7 @@
         public $personnel_phoneNum;
         public $personnel_type;
         public $dept_code;
+        public $personnel_attend;
 
         function __construct($conn, $ICNum, $name, $email, $phoneNum, $type, $dept_code, $personnel_ID="NULL"){
             $this->personnel_ICNum = $ICNum;
@@ -152,16 +155,23 @@
                 $tempDept = new Department ($dept_code, "temp", "temp");
                 $tempVar = $tempDept->refreshDeptHeadCount($conn);
                 $tempHeadCount = $tempDept->getDeptHeadCount($conn);
-                $this->personnel_ID = derivePersonnelID($dept_code, $tempHeadCount);
+                $this->personnel_ID = derivePersonnelID($conn, $dept_code, $tempHeadCount);
             }else{
                 $this->personnel_ID = $personnel_ID;
             }
+        }
+
+        function setAttend($attend){
+            $this->personnel_attend = $attend;
         }
 
         function addPersonnel($conn, $newPersonnel){
             if($conn == null){
                 $auth_type = "PER";
                 require 'connect.php';
+            }
+            if($newPersonnel->checkICNum($conn) == 1){
+                return -2;
             }
                 $pdo_statement = $conn->prepare("INSERT INTO
                     personnel(personnel_ID, personnel_ICNum, personnel_name, personnel_gender, personnel_age, personnel_email, personnel_phoneNum, personnel_type, dept_code)
@@ -178,7 +188,7 @@
                 ':dept_code'=>$newPersonnel->dept_code]))
                 return 1;
             else
-                return 0; 
+                return 0;
         }
 
         function fetchPersonnel($conn, $targetValue, $targetField){
@@ -304,9 +314,12 @@
                 ':dept_code'=>$newDept->dept_code,
                 ':dept_name'=>$newDept->dept_name,
                 ':dept_desc'=>$newDept->dept_desc,
-                ':dept_headCount'=>0]))
-                $newDept->refreshDeptHeadCount($conn);
-                return 1;
+                ':dept_headCount'=>0])){
+                    $newDept->refreshDeptHeadCount($conn);
+                    return 1;
+                }
+            else
+                return -1;
             }else{
                 return 0;
             }
@@ -786,13 +799,13 @@
     class Service{
         public $svc_code;
         public $svc_desc;
-        public $svc_fee;
+        public $svc_enable;
         public $dept_code;
 
-        function __construct($code, $desc, $fee, $dept_code="NULL"){
+        function __construct($code, $desc, $enable, $dept_code="NULL"){
             $this->svc_code = $code;
             $this->svc_desc = $desc;
-            $this->svc_fee = $fee;
+            $this->svc_enable = $enable;
             if($dept_code != "NULL")
                 $this->dept_code = $dept_code;
         }
@@ -822,14 +835,17 @@
 
             if($this->checkSvcCode($conn) == 0 && $targetDept->checkDeptCode($conn) > 0){
                 $pdo_statement = $conn->prepare("INSERT INTO
-                    service(svc_code, svc_desc, svc_fee, dept_code)
-                    VALUES (:svc_code, :svc_desc, :svc_fee, :dept_code)");
+                    service(svc_code, svc_desc, svc_enable, dept_code)
+                    VALUES (:svc_code, :svc_desc, :svc_enable, :dept_code)");
             if($pdo_statement->execute([
                 ':svc_code'=>$this->svc_code,
                 ':svc_desc'=>$this->svc_desc,
-                ':svc_fee'=>$this->svc_fee,
-                ':dept_code'=>$targetDept->dept_code]))
-                return 1;
+                ':svc_enable'=>$this->svc_enable,
+                ':dept_code'=>$targetDept->dept_code])){
+                    return 1;
+                }else{
+                    return -1;
+                }
             }else{
                 return 0;
             }
@@ -848,6 +864,16 @@
         }
 
         
+    }
+
+    class AppointmentQueue{
+        public $app_datetime;
+        public $svc_name;
+
+        function __construct($datetime, $svc_name){
+            $this->app_datetime = $datetime;
+            $this->svc_name = $svc_name;
+        }
     }
 
 ?>

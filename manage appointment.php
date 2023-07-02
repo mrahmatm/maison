@@ -15,4 +15,15 @@
         }
         echo $result;
     }
+
+    if ($q == "fetchAllAvailService") {
+        // Fetch service data
+        $result = fetchAllService($conn);
+        if ($result === null || $result == null) {
+            $result = null;
+        } else {
+            $result = json_encode($result);
+        }
+        echo $result;
+    }
 ?>

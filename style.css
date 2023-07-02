@@ -1,30 +1,67 @@
 /* Reset default styles */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css");
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
   
+  
+
   body {
     font-family: Arial, sans-serif;
     background-color: #f1f1f1;
   }
   
-  .container {
+  .row{
+    width: 100%;
+  }
+
+  .icon-container {
+    margin: 2px 2px; /* Adjust the margins as needed */
+  }
+
+  .navbar{
+    background-color: #9370db;
+  }
+
+  
+
+  #navBarLogo{
+    width: 10%;
+    height: 10%;
+    margin: 2% 2%;
+  }
+
+ /* .container {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+    max-width: 100%;
+    margin: auto auto;
+  }*/
   
-  .column {
+  .container{
+    margin-top: 2%;
+  }
+
+  .row{
+    margin-top: 20px;
+  }
+
+  .card {
     flex: 1 1 300px;
     background-color: #fff;
     border-radius: 5px;
     padding: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 2%;
+    width: 100%;
+    display: flexbox;
+  }
+
+  .card-header{
+    background-color: #D3C5F0 !important;
   }
   
   h2 {
@@ -33,15 +70,15 @@
   }
   
   .button {
-    display: block;
+    display: inline-block;
     width: 100%;
     max-width: 200px;
-    margin-bottom: 10px;
     padding: 10px;
     font-size: 16px;
     font-weight: bold;
     text-align: center;
     background-color: #9370db;
+    
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -66,7 +103,7 @@
   .display-table th,
   .display-table td {
     padding: 8px 12px;
-    text-align: left;
+    text-align: center;
   }
   
   .display-table th {
@@ -95,50 +132,6 @@
     }
   }
 
-  /* Modal Container */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* Modal Content */
-.modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    width: 300px;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Close Button */
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close:hover,
-.close:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
 .display-table-container h3 {
   font-size: 15px;
   font-weight: bold;
@@ -149,5 +142,288 @@
   margin-bottom: 20px;
 }
 
+.floating-window {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: auto;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  z-index: 9999;
+  resize: both;
+  overflow: visible;
+}
 
+.red-border {
+  border: 2px solid red !important;
+}
+
+.window-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f1f1f1;
+  border-bottom: 1px solid #ccc;
+  position: sticky;
+  z-index: 1;
+  top: 0;
+}
+
+.window-header-active{
+  background-color: #9370db;
+}
+
+.window-title-active {
+  font-weight: bold;
+  color: white;
+}
+
+.window-title {
+  font-weight: bold;
+}
+
+.window-close-btn {
+  border: none;
+  background-color: transparent;
+  color: #999;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.window-close-btn:hover {
+  color: #333;
+}
+
+.window-content {
+  padding: 10px;
+}
+
+/* Content cover */
+.content-cover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  z-index: 9999; /* Ensure it appears above other elements */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  background-size: cover;
+  background-position: center;
+}
+.content-cover-image{
+  filter: grayscale(100%);
+}
+
+.resized-image {
+  width: 400px; /* Adjust the width as needed */
+  height: auto; /* Maintain the aspect ratio */
+  margin: 5% 5%;
+}
+
+.image-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+
+.login-form {
+  background-color: #fefdfe;
+  padding: 20px;
+  text-align: center;
+  width: 300px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.div-bottom-line{
+  border-bottom: 2px solid #9370db;
+}
+
+.login-form h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.login-form form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-form div {
+  margin-bottom: 10px;
+}
+
+.login-form label {
+  display: block;
+  font-weight: bold;
+}
+
+.login-form input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.login-form button[type="submit"] {
+  width: 100%;
+  max-width: 200px;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #9370db;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-form button[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 50%;
+  width: 90%; /* Full width */
+  height: 90%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  -webkit-animation-name: fadeIn; /* Fade in the background */
+  -webkit-animation-duration: 0.4s;
+  animation-name: fadeIn;
+  animation-duration: 0.4s
+}
+
+/* Modal Content */
+.modal-content {
+  position: fixed;
+  bottom: 0;
+  background-color: #fefefe;
+  width: 90%;
+  -webkit-animation-name: slideIn;
+  -webkit-animation-duration: 0.4s;
+  animation-name: slideIn;
+  animation-duration: 0.4s;
+  top: 40%;
+}
+
+/* The Close Button */
+.close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn {
+  margin: 5px 5px !important;
+}
+
+.modal-header {
+  padding: 2px 16px;
+  background-color: #5cb85c;
+  color: white;
+}
+
+.modal-body {padding: 2px 16px;}
+
+.modal-footer {
+  padding: 2px 16px;
+  background-color: #5cb85c;
+  color: white;
+}
+
+/* Add Animation */
+@-webkit-keyframes slideIn {
+  from {bottom: -300px; opacity: 0} 
+  to {bottom: 0; opacity: 1}
+}
+
+@keyframes slideIn {
+  from {bottom: -300px; opacity: 0}
+  to {bottom: 0; opacity: 1}
+}
+
+@-webkit-keyframes fadeIn {
+  from {opacity: 0} 
+  to {opacity: 1}
+}
+
+@keyframes fadeIn {
+  from {opacity: 0} 
+  to {opacity: 1}
+}
+
+.modal-body table {
+  border-collapse: collapse;
+}
+
+.modal-body td {
+  padding: 10px;
+  margin: 10px;
+}
+
+.modal-body input[type="text"],
+.modal-body input[type="email"],
+.modal-body input[type="date"],
+.modal-body input[type="time"] {
+  width: 450px; /* Adjust the width as needed */
+  padding: 8px; /* Adjust the padding as needed */
+  font-size: 16px; /* Adjust the font size as needed */
+}
+
+.modal-form{
+  display: none;
+}
+
+.modal-form-active{
+  display: block;
+}
+
+.modal-content .modal-body #feedbackSpace {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+.todayAppointment td {
+  background-color: #D3C5F0;
+  font-weight: bold;
+}
+
+.red-switch {
+  background-color: red !important;
+  border-color: red !important;
+}
+
+.red-bold-text {
+  color: red;
+  font-weight: bold;
+}
+
+#map {
+  height: 300px !important;
+}
 

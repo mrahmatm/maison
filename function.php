@@ -64,11 +64,27 @@
 
     }
 
-    function derivePersonnelID($dept_code, $dept_headCount){
+    function derivePersonnelID($conn, $dept_code, $dept_headCount){
+        error_reporting(error_reporting() & ~E_DEPRECATED);
         $nowYear = date('Y');
         $strYear = strftime('Y', $nowYear);
-        $output = $dept_code."-".$nowYear."-".$dept_headCount+1;
-
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $n = 1;
+        $output = $dept_code."-".$nowYear."-".$n;
+        while(true){
+            $pdo_statement = $conn->prepare("SELECT * FROM personnel WHERE personnel_ID=:target");
+            $pdo_statement->execute([':target'=>$output]);
+            $result = $pdo_statement->fetch(PDO::FETCH_LAZY);
+            if($result != NULL){
+                $n++;
+                $output = $dept_code."-".$nowYear."-".$n;
+            }else{
+                break;
+            }
+        }
         return $output;
     }
 
@@ -192,7 +208,7 @@
                 $pdo_statement->bindValue(':q_ID', $queue->q_ID);
                 $pdo_statement->bindValue(':q_before', $queue->q_before);
                 $pdo_statement->bindValue(':q_after', $queue->q_after);
-                $pdo_statement->bindValue(':q_type', $holdQueueType);
+                $pdo_statement->bindValue(':q_type', $queue->q_type);
                 $pdo_statement->bindValue(':patient_ICNum', $queue->patient_ICNum);
                 $pdo_statement->bindValue(':svc_code', $queue->svc_code);
                 $success = $pdo_statement->execute();
@@ -208,7 +224,6 @@
             }
             $currentQueue = readQueueInstance($conn, $queueType);
             $removedNode = $currentQueue->removeHead();
-            
             
             //replace current queue dengan updated queue
             $sql = "DELETE FROM queue WHERE q_type =:targetValue";
@@ -230,7 +245,6 @@
                 $success = $pdo_statement->execute();
                 $currentNode = $currentNode->after;
             }
-
             return $removedNode;
         }else{
             return -1;
@@ -300,8 +314,6 @@
         $punishmentPosition = ceil($cbqX + $yValue)-1;
         //echo "<script>alert('".$punishmentPosition."');</script>";
         if($GPQ->insertAfter($queue, $punishmentPosition)){
-            //$queue = checkResetQueueID($conn, $queue);
-            //echo "<script>alert('current queue type: '".$queue->q_type.")</script>";
             $sql = "DELETE FROM queue WHERE q_type =:targetValue";
             $pdo_statement = $conn->prepare($sql);
             $status = $pdo_statement->execute([':targetValue'=>$queue->q_type]);
@@ -339,7 +351,7 @@
             if($result===false)
                 break;
             else{
-                echo "<script>alert('Redundant q_id, renegerating...')</script>";
+                //echo "<script>alert('Redundant q_id, renegerating...')</script>";
                 $readQueue->resetID();
             }
         }
@@ -404,7 +416,7 @@
         //sum of all lengths
         $sum = $appointmentLength+$generalLength+$secondLevelLength+1;
         //get number of present doctors
-        $presentDr = countAllPresentDr($conn);
+        $presentDr = countAllPresentDr($conn)+1;
         //calculate current crowd score = sum all patients queueing / number of doctors
         $tempVal = $sum/$presentDr;
         //echo "<script>alert('Current score: ".$tempVal."')</script>";
@@ -527,102 +539,162 @@
             return false;
         }
     }
-    /*
+    
     function progressQueue($conn){
         if($conn == null){
             $auth_type = "PER";
             require 'connect.php';
         }
-        $statusSLQ = checkQueueExists($conn, "SLQ");
-        $statusAPQ = checkQueueExists($conn, "APQ");
-        $statusGPQ = checkQueueExists($conn, "GPQ");
+        
+        $SLQExists = checkQueueExists($conn, "SLQ");
+        $APQExists = checkQueueExists($conn, "APQ");
+        $GPQExists = checkQueueExists($conn, "GPQ");
 
-        $sql = "SELECT clinic_SLQMaxSize FROM clinic";
-        $pdo_statement = $conn->prepare($sql);
-        $pdo_statement->execute();
-        $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
-        $SLQMaxSize = $result->clinic_SLQMaxSize;
+        if($SLQExists == 1 && $APQExists == 1 && $GPQExists == 1){
+            //if all three queue exists
+            $SLQState = readQueueInstance($conn, "SLQ");
+            $SLQSize = $SLQState->getSize();
 
-        if($statusSLQ == 1){
-            //SLQ exists
-            $SLQInstance = readQueueInstance($conn, "SLQ");
-            $SLQCurrentSize = $SLQInstance->getSize();
-            if($statusAPQ  == 1){
-                //APQ exists
-                $APQInstance = readQueueInstance($conn, "APQ");
-                $APQCurrentSize = $APQInstance->getSize();
-                $diff = $SLQMaxSize-$SLQCurrentSize;
-                //checks if SLQ still has space, if so insert
-                if($diff >= 0){
-                    $n = 0;
-                    while($n<$diff){
-                        $tempAPQ = dequeue($conn, "APQ");
-                        //check if what is read from APQ is still a Queue
-                        if($tempAPQ instanceof Queue){
-                            //if true, change type to SLQ and enqueue into SLQ
-                            $tempAPQ->setType("SLQ");
-                            enqueue($conn, $tempAPQ);
-                        }else{
-                            break;
-                        }
-                        $n++;
-                    }
-                }
-                //re-check if SLQ still has space
-                $SLQInstance = readQueueInstance($conn, "SLQ");
-                $SLQCurrentSize = $SLQInstance->getSize();
-                if($SLQCurrentSize < $SLQMaxSize){
-                    //still has space, insert GPQ if any
-                    //then check if GPQ exists
-                    $GPQStatus = checkQueueExists($conn, "GPQ");
-                    (if $GPQStatus == 1){
-                        //GPQ exist, proceed enqueueing
-                        $GPQInstance = readQueueInstance($conn, "GPQ");
-                        $GPQCurrentSize = $GPQInstance->getSize();
-                        $diff = $SLQMaxSize-$SLQCurrentSize;
-                        //checks if SLQ still has space, if so insert
-                        if($diff >= 0){
-                            $n = 0;
-                            while($n<$diff){
-                                $tempGPQ = dequeue($conn, "GPQ");
-                                //check if what is read from APQ is still a Queue
-                                if($tempGPQ instanceof Queue){
-                                    //if true, change type to SLQ and enqueue into SLQ
-                                    $tempGPQ->setType("SLQ");
-                                    enqueue($conn, $tempGPQ);
-                                }else{
-                                    break;
-                                }
-                                $n++;
-                            }
-                        }
-                    }
-                }
+            $sql = "SELECT clinic_SLQMaxSize FROM clinic";
+            $pdo_statement = $conn->prepare($sql);
+            $pdo_statement->execute();
+            $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+            $SLQMaxSize = $result->clinic_SLQMaxSize;
+            //max size allowed for SLQ vs current capacity
+            $diff = $SLQMaxSize-$SLQSize;
+            if($diff <= 0){
+                //SLQ is full, return 0
+                return 0;
             }else{
-                //APQ does not exist but SLQ exists
-                $GPQInstance = readQueueInstance($conn, "GPQ");
-                $GPQCurrentSize = $GPQInstance->getSize();
-                $diff = $SLQMaxSize-$SLQCurrentSize;
-                //checks if SLQ still has space, if so insert
-                if($diff >= 0){
-                    $n = 0;
-                    while($n<$diff){
-                        $tempGPQ = dequeue($conn, "GPQ");
-                        //check if what is read from APQ is still a Queue
-                        if($tempGPQ instanceof Queue){
-                            //if true, change type to SLQ and enqueue into SLQ
-                            $tempGPQ->setType("SLQ");
-                            enqueue($conn, $tempGPQ);
-                        }else{
-                            break;
-                        }
-                        $n++;
-                    }
+                //SLQ has space
+                //dequeue from APQ, insert into SLQ
+                $n = 0;
+                while($n < $diff){
+                    $current = dequeue($conn, "APQ");
+                    $current->setType("SLQ");
+                    enqueue($conn, $current);
+                    $diff--;
+                    $n++;
+                }
+
+                $n = 0;
+                while($n < $diff){
+                    $current = dequeue($conn, "GPQ");
+                    $current->setType("SLQ");
+                    enqueue($conn, $current);
+                    //$diff--;
+                    $n++;
                 }
             }
-        }
+            return 111;
+        }elseif($SLQExists == 1 && $APQExists != 1 && $GPQExists == 1){
+            //APQ takde, so fill SLQ dengan GPQ
+            $sql = "SELECT clinic_SLQMaxSize FROM clinic";
+            $pdo_statement = $conn->prepare($sql);
+            $pdo_statement->execute();
+            $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+            $SLQMaxSize = $result->clinic_SLQMaxSize;
 
-    }*/
+            $SLQState = readQueueInstance($conn, "SLQ");
+            $SLQSize = $SLQState->getSize();
+
+            $GPQState = readQueueInstance($conn, "GPQ");
+            $GPQSize = $GPQState->getSize();
+            $diff = $SLQMaxSize-$SLQSize;
+            $n = 0;
+            while($n < $diff && $n<$GPQSize){
+                $current = dequeue($conn, "GPQ");
+                $current->setType("SLQ");
+                enqueue($conn, $current);
+                $n++;
+            }
+            return 101;
+        }elseif($SLQExists != 1 && $APQExists == 1 && $GPQExists == 1){
+            //SLQ does not exist
+            $sql = "SELECT clinic_SLQMaxSize FROM clinic";
+            $pdo_statement = $conn->prepare($sql);
+            $pdo_statement->execute();
+            $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+            $SLQMaxSize = $result->clinic_SLQMaxSize;
+
+            $APQState = readQueueInstance($conn, "APQ");
+            $APQSize = $APQState->getSize();
+            $GPQState = readQueueInstance($conn, "APQ");
+            $GPQSize = $GPQState->getSize();
+            //masukkan APQ dulu
+            if($APQSize >=  $SLQMaxSize){
+                //cukup2 untuk APQ or APQ pun tak muat
+                $n = 0;
+                while($n < $SLQMaxSize){
+                    $current = dequeue($conn, "APQ");
+                    $current->setType("SLQ");
+                    enqueue($conn, $current);
+                    //$diff--;
+                    $n++;
+                }
+            }else{
+                //ada balance untuk GPQ
+                //masukkan APQ dulu
+                $n = 0;
+                while($n < $SLQMaxSize && $n < $APQSize){
+                    $current = dequeue($conn, "APQ");
+                    $current->setType("SLQ");
+                    enqueue($conn, $current);
+                    $SLQMaxSize--;
+                    $n++;
+                }
+                //then masukkan GPQ untuk balancing space
+                $n = 0;
+                while($n < $SLQMaxSize && $n < $GPQSize){
+                    $current = dequeue($conn, "GPQ");
+                    $current->setType("SLQ");
+                    enqueue($conn, $current);
+                    //$diff--;
+                    $n++;
+                }
+            }
+
+            return 11;
+        }elseif($SLQExists != 1 && $APQExists != 1 && $GPQExists == 1){
+            $sql = "SELECT clinic_SLQMaxSize FROM clinic";
+            $pdo_statement = $conn->prepare($sql);
+            $pdo_statement->execute();
+            $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+            $SLQMaxSize = $result->clinic_SLQMaxSize;
+
+            $GPQState = readQueueInstance($conn, "GPQ");
+            $GPQSize = $GPQState->getSize();
+
+            $n = 0;
+            while($n < $SLQMaxSize && $n < $GPQSize){
+                $current = dequeue($conn, "GPQ");
+                $current->setType("SLQ");
+                enqueue($conn, $current);
+                $n++;
+            }
+
+            return 1;
+        }elseif($SLQExists != 1 && $APQExists == 1 && $GPQExists != 1){
+            $sql = "SELECT clinic_SLQMaxSize FROM clinic";
+            $pdo_statement = $conn->prepare($sql);
+            $pdo_statement->execute();
+            $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+            $SLQMaxSize = $result->clinic_SLQMaxSize;
+
+            $APQState = readQueueInstance($conn, "APQ");
+            $APQSize = $APQState->getSize();
+
+            $n = 0;
+            while($n < $SLQMaxSize && $n < $APQSize){
+                $current = dequeue($conn, "APQ");
+                $current->setType("SLQ");
+                enqueue($conn, $current);
+                $n++;
+            }
+
+            return 1;
+        }
+    }
 
     function fetchAllPersonnel($conn){
         if($conn == null){
@@ -638,6 +710,7 @@
             $fetchedPersonnels = array();
             foreach($result as $current){
                 $create = new Personnel($conn, $current->personnel_ICNum, $current->personnel_name, $current->personnel_email, $current->personnel_phoneNum,  $current->personnel_type,  $current->dept_code,  $current->personnel_ID);
+                $create->setAttend($current->personnel_attend);
                 array_push($fetchedPersonnels,  $create);
             }
             return $fetchedPersonnels;
@@ -727,7 +800,7 @@
             //return $result;
             $fetchedServices = array();
             foreach($result as $current){
-                $create = new Service($current->svc_code, $current->svc_desc, $current->svc_fee, $current->dept_code);
+                $create = new Service($current->svc_code, $current->svc_desc, $current->svc_enable, $current->dept_code);
                 //$create->refreshDeptHeadCount($conn);
                 array_push($fetchedServices,  $create);
             }
@@ -764,11 +837,50 @@
             }
     }
 
+    function fetchCBQConfig($conn) {
+        if ($conn == null) {
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+    
+        $sql = "SELECT * FROM cbq";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result = $pdo_statement->fetchAll(PDO::FETCH_ASSOC);
+
+
+        if ($result != null && count($result) > 0) {
+            return json_encode($result);
+        } else {
+            return null;
+        }
+    }
+
+    function fetchClinicCap($conn){
+        if ($conn == null) {
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+    
+        $sql = "SELECT * FROM clinic";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result = $pdo_statement->fetch(PDO::FETCH_ASSOC);
+
+
+        if ($result != null && count($result) > 0) {
+            return json_encode($result);
+        } else {
+            return null;
+        }
+    }
+
     function insertAppQueue($conn, $queue, $datetime, $personnelID=null){
         if($conn == null){
             $auth_type = "PER";
             require 'connect.php';
         }
+        $flag = 0;
         if($queue->q_type == "APP" || $queue->q_type === "APP"){
             $pdo_statement = $conn->prepare("INSERT INTO
                 queue(q_ID, patient_ICNum, q_type)
@@ -776,16 +888,19 @@
             if($pdo_statement->execute([
                 ':q_ID'=>$queue->q_ID,
                 ':patient_ICNum'=>$queue->patient_ICNum,
-                ':q_type'=>$queue->q_type]))
+                ':q_type'=>$queue->q_type])){
+                    $flag = 1;
+                }
 
             if(is_null($personnelID)){
-                insertAppointment($conn, $queue, $datetime);
+                $flag = insertAppointment($conn, $queue, $datetime);
             }else{
-                insertAppointment($conn, $queue, $datetime, $personnelID);
+                $flag = insertAppointment($conn, $queue, $datetime, $personnelID);
             }
         }else{
-            return 0;
+            $flag = 0;
         }
+        return $flag;
     }
 
     function insertAppointment($conn, $queue, $datetime, $personnelID=null){
@@ -793,23 +908,29 @@
             $auth_type = "PER";
             require 'connect.php';
         }
+        $flag = 0;
         if(is_null($personnelID)){
             $pdo_statement = $conn->prepare("INSERT INTO
                 appointment(q_ID, app_datetime)
                 VALUES (:q_ID, :app_datetime)");
-            $pdo_statement->execute([
+            if($pdo_statement->execute([
                 ':q_ID'=>$queue->q_ID,
-                ':app_datetime'=>$datetime]);
+                ':app_datetime'=>$datetime])){
+                    $flag = 1;
+                }
+            
         }else{
             $pdo_statement = $conn->prepare("INSERT INTO
                 appointment(q_ID, app_datetime, personnel_ID)
                 VALUES (:q_ID, :app_datetime,  :personnel_ID)");
-            $pdo_statement->execute([
+            if($pdo_statement->execute([
                 ':q_ID'=>$queue->q_ID,
                 ':app_datetime'=>$datetime,
-                ':personnel_ID'=>$personnelID]);
+                ':personnel_ID'=>$personnelID])){
+                    $flag = 1;
+                }
         }
-        
+        return $flag;
         
     }
 
@@ -854,4 +975,163 @@
 
         enqueue($conn, $create);
     }
+
+    function searchPatientByEmail($conn, $email){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $sql = "SELECT * FROM patient WHERE patient_email=:targetEmail";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':targetEmail'=>$email]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            return 1;
+        }else{
+            return 0;
+        }
+    }
+
+    function searchAppointmentByEmail($conn, $ID, $IC){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $sql = "SELECT * FROM patient WHERE patient_email=:targetEmail";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':targetEmail'=>$email]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+
+        $targetIC=$result->patient_ICNum;
+
+        $sql = "SELECT * FROM queue WHERE patient_ICNum=:target AND q_type='APP'";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':target'=>$targetIC]);
+        $result=$pdo_statement->fetchAll(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            $fetchAppointments = array();
+            foreach($result as $appointment){
+                $sql = "SELECT * FROM appointment WHERE q_ID=:target";
+                $pdo_statement = $conn->prepare($sql);
+                $pdo_statement->execute([':target'=>$appointment->q_ID]);
+                $resultApp=$pdo_statement->fetch(PDO::FETCH_OBJ);
+
+                $sql = "SELECT * FROM service WHERE svc_code=:target";
+                $pdo_statement = $conn->prepare($sql);
+                $pdo_statement->execute([':target'=>$appointment->svc_code]);
+                $resultSvc=$pdo_statement->fetch(PDO::FETCH_OBJ);
+
+                $create = new AppointmentQueue($resultApp->app_datetime, $resultSvc->svc_desc);
+                array_push($fetchAppointments, $create);
+            }
+            return json_encode($fetchAppointments);
+        }else{
+            return 0;
+        }
+    }
+
+    function personnelLogin($conn, $id, $IC){
+        $sql = "SELECT * FROM personnel WHERE personnel_ID=:targetID AND personnel_ICNum=:targetIC";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':targetID'=>$id, ':targetIC'=>$IC]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            return json_encode($result);
+        }else{
+            return 0;
+        }
+    }
+
+    function fetchAllServiceInfo($conn){
+        $sql = "SELECT * FROM service WHERE svc_enable=1";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result=$pdo_statement->fetchAll(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            $fetchedServices = array();
+            foreach($result as $service){
+                $create = new Service($service->svc_code, $service->svc_desc, $service->svc_enable);
+                array_push($fetchedServices, $create);
+            }
+            return json_encode($fetchedServices);
+        }else{
+            return 0;
+        }
+    }
+
+    function insertNewPatientAppointment($conn, $email, $selectService, $datetime){
+
+        // Convert the string to a DateTime object with the specified time zone
+        $date = new DateTime($datetime, new DateTimeZone('Asia/Kuala_Lumpur'));
+
+        // Get the current date and time in the same time zone
+        $currentDateTime = new DateTime('now', new DateTimeZone('Asia/Kuala_Lumpur'));
+        $currentDate = new DateTime($currentDateTime->format('Y-m-d'), new DateTimeZone('Asia/Kuala_Lumpur'));
+
+        // Add one day to the current date to calculate "tomorrow" in the same time zone
+        $tomorrow = $currentDate->modify('+1 day');
+
+        // Check if the date is tomorrow or onwards
+        if ($date >= $tomorrow) {
+
+            // Check if the time is between 8am and 4pm
+            $time = $date->format('H:i');
+            if ($time >= '08:00' && $time <= '16:00') {
+                //return "1"; // Both conditions satisfied
+                //so proceed
+            } else {
+                return "-1"; // Time condition not satisfied
+            }
+
+        } else {
+            return "-2"; // Date condition not satisfied
+        }
+
+
+        $sql = "SELECT * FROM service WHERE svc_desc=:targetDesc";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([":targetDesc"=>$selectService]);
+        $fetchedService=$pdo_statement->fetch(PDO::FETCH_OBJ);
+
+        $sql = "SELECT * FROM patient WHERE patient_email=:targetEmail";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([":targetEmail"=>$email]);
+        $fetchedPatient=$pdo_statement->fetch(PDO::FETCH_OBJ);
+
+        $create = new Queue("APP", $fetchedPatient->patient_ICNum, $fetchedService->svc_code);
+        $create = checkResetQueueID($conn, $create);
+
+        $sql = "INSERT INTO queue(q_ID, q_type, patient_ICNum, svc_code)
+            VALUES (:q_ID, :q_type, :patient_ICNum, :svc_code)";
+        $pdo_statement = $conn->prepare($sql);
+        if($pdo_statement->execute([":q_ID"=>$create->q_ID, ":q_type"=>$create->q_type,
+        ":patient_ICNum"=>$create->patient_ICNum, ":svc_code"=>$create->svc_code])){
+            //if insert queue success
+            $sql = "INSERT INTO appointment(q_ID, app_datetime)
+                VALUES (:q_ID, :app_datetime)";
+            $pdo_statement = $conn->prepare($sql);
+            if($pdo_statement->execute([":q_ID"=>$create->q_ID, ":app_datetime"=>$datetime])){
+                return 1;
+            }else{
+                return 0;
+            }
+        }else{
+            return 0;
+        }
+    }
+
+    function convertToSQLDateTimeHTML($inputDate, $inputTime) {
+        // Combine date and time values into a single string
+        $combinedDateTime = $inputDate . ' ' . $inputTime;
+      
+        // Create a DateTime object from the combined date and time
+        $dateTime = new DateTime($combinedDateTime);
+      
+        // Format the DateTime object into SQL-formatted datetime
+        $sqlDateTime = $dateTime->format('Y-m-d H:i:s');
+      
+        return $sqlDateTime;
+      }
+      
+
 ?>
