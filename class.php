@@ -779,12 +779,12 @@
                 $queue = $current->data;
     
                 $queueData = [
-                    'ID' => $queue->q_ID,
-                    'Type' => $queue->q_type,
-                    'Patient ICNum' => $queue->patient_ICNum,
-                    'Service Code' => $queue->svc_code,
-                    'Before' => $queue->q_before,
-                    'After' => $queue->q_after
+                    'q_ID' => $queue->q_ID,
+                    'q_type' => $queue->q_type,
+                    'patient_ICNum' => $queue->patient_ICNum,
+                    'svc_code' => $queue->svc_code,
+                    'q_before' => $queue->q_before,
+                    'q_after' => $queue->q_after
                 ];
     
                 $data[] = $queueData;

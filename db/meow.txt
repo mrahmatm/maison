@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mai_son/functions/PapillonSwatch.dart';
+
+class QueueScreen extends StatefulWidget {
+  final String email;
+
+  const QueueScreen({required this.email});
+
+  @override
+  _QueueScreenState createState() => _QueueScreenState();
+}
+
+class _QueueScreenState extends State<QueueScreen> {
+  Widget? currentScreen;
+
+  @override
+  void initState() {
+    super.initState();
+    currentScreen = QueueScreen(email: widget.email);
+    print("received email: "+widget.email);
+  }
+
+  Future<Position> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if(!serviceEnabled){
+      return Future.error("Location service aren't enabled");
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if(permission == LocationPermission.denied){
+      permission= await Geolocator.requestPermission();
+      if(permission == LocationPermission.denied){
+        return Future.error('Location permissions were declined.');
+      }
+    }
+
+    if(permission == LocationPermission.deniedForever){
+      return Future.error("Locations are permanently denied!");
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  final PageStorageBucket bucket = PageStorageBucket();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Container(
+            color: createMaterialColorPapillon(Color.fromARGB(255, 186, 116, 178)),
+            width: MediaQuery.of(context).size.width,
+            height: 450,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Your Queue Number:", style: TextStyle(color: Colors.white)),
+                SizedBox(height: 25),
+                Text("XXX", style: TextStyle(color: Colors.white, fontSize: 50)),
+                SizedBox(height: 25),
+                Text("Status: ", style: TextStyle(color: Colors.white)),
+                SizedBox(height: 25),
+                Text("YYYYY", style: TextStyle(color: Colors.white, fontSize: 30))
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}

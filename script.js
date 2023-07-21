@@ -58,6 +58,7 @@ function fetchPersonnel() {
                     var btnDelete = document.createElement("button");
                     btnDelete.setAttribute("type", "button");
                     btnDelete.setAttribute("class", "btn btn-outline-danger delete-btn");
+                    btnDelete.setAttribute("disabled", "");
                     
                     var deleteIcon = document.createElement("i");
                     deleteIcon.classList.add("bi");
@@ -109,6 +110,7 @@ function fetchPatient() {
 
             patientDataArray = [];
             patientDataArray = patientData;
+            //alert("patient data flushed: "+ JSON.stringify(patientDataArray));
             var table = document.getElementById('displayPatient');
             //document.getElementById("testOutput").innerHTML = this.responseText;
             // Clear existing table rows
@@ -140,6 +142,7 @@ function fetchPatient() {
                 var btnDelete = document.createElement("button");
                 btnDelete.setAttribute("type", "button");
                 btnDelete.setAttribute("class", "btn btn-outline-danger delete-btn");
+                btnDelete.setAttribute("disabled", "");
 
                 var deleteIcon = document.createElement("i");
                 deleteIcon.classList.add("bi");
@@ -180,40 +183,46 @@ function fetchPatient() {
     xmlhttp.send();
 }
 
+var queueDataArray = [];
 function fetchQueue() {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             var response = xmlhttp.responseText;
-            
+            //alert("raw data queues: "+response);
             try{
-              var queueData = JSON.parse(response);
+              var queueData = response.split("##@@!!");
+              queueDataArray = queueData;
+              //var queueData = JSON.parse(JSON.parse(response));
+              //alert("queue data flushed: "+ JSON.stringify(queueData));
+              //alert("fetched queues: "+queueDataArray);
               // Clear existing table rows for SLQ
               clearTableRows("displayPatientSLQ");
               // Insert SLQ data if not empty
-              if (queueData[0] !== 0) {
+              //alert("0th index: "+queueData[0]);
+              if (queueData[0] !== "0") {
                   var slqData = JSON.parse(queueData[0]);
                   insertQueueData(slqData, "displayPatientSLQ");
               }
-
+              //alert("1st index: "+queueData[1]);
               // Clear existing table rows for APQ
               clearTableRows("displayPatientAPQ");
               // Insert APQ data if not empty
-              if (queueData[1] !== 0) {
+              if (queueData[1] !== "0") {
                   var apqData = JSON.parse(queueData[1]);
                   insertQueueData(apqData, "displayPatientAPQ");
               }
-
+              //alert("2nd index: "+queueData[2]);
               // Clear existing table rows for GPQ
               clearTableRows("displayPatientGPQ");
               // Insert GPQ data if not empty
-              if (queueData[2] !== 0) {
+              if (queueData[2] !== "0") {
                   var gpqData = JSON.parse(queueData[2]);
                   insertQueueData(gpqData, "displayPatientGPQ");
               }
             }catch (error){
-              alert(this.responseText);
-              alert(error);
+              //alert(this.responseText);
+              alert("error: "+error);
             }
             
         }
@@ -294,6 +303,7 @@ function fetchDepartment() {
             var btnDelete = document.createElement("button");
             btnDelete.setAttribute("type", "button");
             btnDelete.setAttribute("class", "btn btn-outline-danger delete-btn");
+            btnDelete.setAttribute("disabled", "");
             
             var deleteIcon = document.createElement("i");
             deleteIcon.classList.add("bi");
@@ -397,6 +407,7 @@ function fetchService() {
             var btnDelete = document.createElement("button");
             btnDelete.setAttribute("type", "button");
             btnDelete.setAttribute("class", "btn btn-outline-danger delete-btn");
+            btnDelete.setAttribute("disabled", "");
 
             var deleteIcon = document.createElement("i");
             deleteIcon.classList.add("bi");
@@ -448,7 +459,8 @@ function fetchService() {
     xmlhttp.open("GET", "manage service.php?" + method, true);
     xmlhttp.send();
 }
-  
+
+var appointmentDataArray = [];
 function fetchAppointment() {
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onreadystatechange = function() {
@@ -459,6 +471,8 @@ function fetchAppointment() {
         var appointmentData;
         if (response !== null && response !== "") {
           appointmentData = JSON.parse(response);
+          appointmentDataArray = [];
+          appointmentDataArray = appointmentData;
         } else {
           appointmentData = null;
         }
@@ -501,6 +515,26 @@ function fetchAppointment() {
           ) {
             row.classList.add('todayAppointment'); // Add the CSS class to the row's class list
           }
+
+          //create cell for action button
+          var cellAction = row.insertCell();
+          // Create the button element for delete action
+          var btnDelete = document.createElement("button");
+          btnDelete.setAttribute("type", "button");
+          btnDelete.setAttribute("class", "btn btn-outline-danger delete-btn");
+          btnDelete.setAttribute("disabled", "");
+
+          var deleteIcon = document.createElement("i");
+          deleteIcon.classList.add("bi");
+          deleteIcon.classList.add("bi-trash3");
+          btnDelete.appendChild(deleteIcon);
+
+          btnDelete.onclick = function() {
+            var targetField = "appointment"; // Replace with the appropriate target field value
+            var primaryKey = appointment.q_ID; // Replace with the actual primary key value
+            generalDeletion(targetField, primaryKey);
+          };
+          cellAction.appendChild(btnDelete);
         });
       } else {
         // Display a message when there is no appointment data
@@ -587,12 +621,31 @@ function fetchCBQConfig() {
                 emptyCell.colSpan = "6";
                 emptyCell.textContent = "No CBQ configurations found.";
             }
+
+            fetchPatientAVG();
         }
     };
 
     var method = "method=" + "fetchAllCBQConfig";
     xmlhttp.open("GET", "manage queue.php?" + method, true);
     xmlhttp.send();
+}
+
+function fetchPatientAVG() {
+  //reloadMap();
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        var array = this.responseText.split("?");
+        document.getElementById("outputPatientPerDr").innerText = array[0];
+        document.getElementById("outputDrCount").innerText = array[2];
+        document.getElementById("outputQueueLength").innerText = array[1];
+      }
+  };
+
+  var method = "method=" + "fetchPatientAverage";
+  xmlhttp.open("GET", "manage queue.php?" + method, true);
+  xmlhttp.send();
 }
 
 function progressQueue(){
@@ -778,6 +831,10 @@ function dummyGPQ(){
 }
 
 function clearQueue(){
+  if(!displayConfirmBox("Clear the whole queue? ALERT: THIS WILL WIPE THE WHOLE QUEUE!")){
+    fetchQueue();
+    return;
+  }
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -803,7 +860,7 @@ function clearTableRows(tableId) {
 
 function insertQueueData(data, tableId) {
     var table = document.getElementById(tableId);
- 
+    //alert(JSON.stringify(data));
     for (var i = 0; i < data.length; i++) {
         var row = table.insertRow();
         var cell1 = row.insertCell(0);
@@ -813,20 +870,23 @@ function insertQueueData(data, tableId) {
         var cell5 = row.insertCell(4);
         var cell6 = row.insertCell(5);
 
-        cell1.innerHTML = data[i].ID;
-        cell2.innerHTML = data[i].Before;
-        cell3.innerHTML = data[i].After;
-        cell4.innerHTML = data[i].Type;
-        cell5.innerHTML = data[i]["Patient ICNum"];
-        var currentIC = data[i]["Patient ICNum"];
+        cell1.innerHTML = data[i].q_ID;
+        cell2.innerHTML = data[i].q_before;
+        cell3.innerHTML = data[i].q_after;
+        cell4.innerHTML = data[i].q_type;
+        cell5.innerHTML = data[i].patient_ICNum;
+        var currentIC = data[i].patient_ICNum;
         // Create the button element for delete action
         var btnView = document.createElement("button");
         btnView.setAttribute("type", "button");
         btnView.setAttribute("class", "btn btn-outline-info");
-        
-        btnView.onclick = function() {
-          displayPatientInfo(currentIC);
-        };
+        //alert("current ic insert: " + currentIC);
+        btnView.onclick = function(ic) {
+          return function() {
+            //alert("current ic: " + ic);
+            displayPatientInfo(ic);
+          };
+        }(currentIC);
 
         var viewIcon = document.createElement("i");
         viewIcon.classList.add("bi");
@@ -841,6 +901,8 @@ var floatingWindow = document.getElementById('myWindow');
 var isDragging = false;
 var startX;
 var startY;
+var windowOffsetX;
+var windowOffsetY;
 
 floatingWindow.addEventListener('mousedown', startDragging);
 floatingWindow.addEventListener('touchstart', startDragging, { passive: false });
@@ -889,10 +951,10 @@ function setWindowSize() {
   var screenWidth = window.innerWidth;
   var screenHeight = window.innerHeight;
   var windowWidth = Math.min(0.8 * screenWidth, 400);
-  var windowHeight = Math.min(0.8 * screenHeight, 214);
+  var windowHeight = Math.min(0.8 * screenHeight, 328);
 
   floatingWindow.style.width = windowWidth + 'px';
-  floatingWindow.style.height = windowHeight + 'px';
+  //floatingWindow.style.height = windowHeight + 'px';
 }
 
 // Call setWindowSize initially and on window resize
@@ -901,39 +963,38 @@ window.addEventListener('resize', setWindowSize);
 
 // Functions for dragging the window
 function startDragging(e) {
+  if (e.target.tagName.toLowerCase() === 'input') {
+    return; // Ignore dragging when clicking inside an input field
+  }
   e.preventDefault();
   isDragging = true;
-  startX = getEventX(e) - floatingWindow.offsetLeft;
-  startY = getEventY(e) - floatingWindow.offsetTop;
+  startX = e.clientX || e.touches[0].clientX;
+  startY = e.clientY || e.touches[0].clientY;
+  windowOffsetX = floatingWindow.offsetLeft;
+  windowOffsetY = floatingWindow.offsetTop;
 }
 
 function dragWindow(e) {
   if (!isDragging) return;
   e.preventDefault();
-  var x = getEventX(e) - startX;
-  var y = getEventY(e) - startY;
-  floatingWindow.style.left = x + 'px';
-  floatingWindow.style.top = y + 'px';
+  var x = e.clientX || e.touches[0].clientX;
+  var y = e.clientY || e.touches[0].clientY;
+  var deltaX = x - startX;
+  var deltaY = y - startY;
+  var windowX = windowOffsetX + deltaX;
+  var windowY = windowOffsetY + deltaY;
+
+  windowX = Math.max(0, windowX);
+  windowY = Math.max(0, windowY);
+
+  floatingWindow.style.left = windowX + 'px';
+  floatingWindow.style.top = windowY + 'px';
 }
 
 function stopDragging() {
   isDragging = false;
 }
 
-// Helper functions to get event coordinates
-function getEventX(e) {
-  if (e.type.startsWith('touch')) {
-    return e.touches[0].clientX;
-  }
-  return e.clientX;
-}
-
-function getEventY(e) {
-  if (e.type.startsWith('touch')) {
-    return e.touches[0].clientY;
-  }
-  return e.clientY;
-}
 
 
 //attend switch
@@ -1218,6 +1279,7 @@ function showModificationModal(type, key) {
     targetFormDiv = document.getElementById("displayAppointmentUpdateForm");
     modificationModal.style.display = "block";
     generalModifyButton.value = "appointment";
+
   }
   if (type == "personnel") {
     targetFormDiv = document.getElementById("displayPersonnelUpdateForm");
@@ -1794,9 +1856,101 @@ var deleteSwitchStatus = document.getElementById('deleteSwitchStatus');
 
     }
   });
+
+  function filterTableRows(tableId, filterValue) {
+    var table = document.getElementById(tableId);
+    var rows = table.getElementsByTagName('tr');
+  
+    for (var i = 1; i < rows.length; i++) { // Start from index 1 to exclude the header row
+      var row = rows[i];
+      var cells = row.getElementsByTagName('td');
+      var shouldHideRow = true;
+  
+      for (var j = 1; j < cells.length; j++) { // Start from index 1 to exclude the first cell
+        var cellValue = cells[j].textContent || cells[j].innerText;
+        if (cellValue.toLowerCase().indexOf(filterValue.toLowerCase()) > -1) {
+          shouldHideRow = false;
+          break;
+        }
+      }
+  
+      if (shouldHideRow) {
+        row.style.display = 'none'; // Hide the row
+      } else {
+        row.style.display = ''; // Unhide the row
+      }
+    }
+  }
+  
+  function searchTable(tableId, searchString, includeFirstFlag = false) {
+    // Get the table element
+    var table = document.getElementById(tableId);
+  
+    // Get all the rows
+    var rows = table.getElementsByTagName('tr');
+  
+    // Set the starting index for columns based on the includeFirstFlag value
+    var columnIndexStart = includeFirstFlag ? 0 : 1;
+  
+    for (var i = 1; i < rows.length; i++) { // Start from index 1 to skip the header row
+      var row = rows[i];
+      var cells = row.getElementsByTagName('td');
+      var matchFound = false;
+  
+      // Check each cell's content for the search string (case-insensitive)
+      for (var j = columnIndexStart; j < cells.length; j++) {
+        var cell = cells[j];
+        var content = cell.textContent || cell.innerText;
+  
+        if (content.toLowerCase().includes(searchString.toLowerCase())) {
+          matchFound = true;
+          break;
+        }
+      }
+  
+      // Hide or show the row based on the match
+      if (matchFound) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    }
+  }
   
 
-  
+// Define the function to be called
+function handleInputChange(type) {
+  return function() {
+    var searchString = this.value; // Get the current value of the input
 
+    // Call your function here with the search string
+    if (type == 'patient')
+      searchTable('displayPatient', searchString);
 
-  
+    if (type == 'personnel')
+      searchTable('displayPersonnel', searchString);
+
+    if (type == 'department')
+      searchTable('displayDepartment', searchString, true);
+
+    if (type == 'service')
+      searchTable('displayService', searchString, true);
+  };
+}
+
+var searchBarPatient = document.getElementById('searchBarPatient');
+searchBarPatient.onkeyup = handleInputChange('patient');
+
+var searchBarPersonnel = document.getElementById('searchBarPersonnel');
+searchBarPersonnel.onkeyup = handleInputChange('personnel');
+
+var searchBarPersonnel = document.getElementById('searchBarDepartment');
+searchBarPersonnel.onkeyup = handleInputChange('department');
+
+var searchBarPersonnel = document.getElementById('searchBarService');
+searchBarPersonnel.onkeyup = handleInputChange('service');
+
+function refreshProgressQueue(){
+  progressQueue();
+  fetchQueue();
+}

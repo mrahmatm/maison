@@ -59,7 +59,9 @@
     width: 100%;
     display: flexbox;
   }
-
+  .row-top-margin{
+    margin-top: 2% !important;
+  }
   .card-header{
     background-color: #D3C5F0 !important;
   }
@@ -142,6 +144,14 @@
   margin-bottom: 20px;
 }
 
+.centered-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+
 .floating-window {
   position: fixed;
   top: 50%;
@@ -155,6 +165,13 @@
   resize: both;
   overflow: visible;
 }
+
+.floating-window input[type="text"],
+.floating-window input[type="checkbox"] {
+  position: relative; /* Change position to relative */
+  z-index: 10000;
+}
+
 
 .red-border {
   border: 2px solid red !important;
@@ -245,6 +262,14 @@
 
 .div-bottom-line{
   border-bottom: 2px solid #9370db;
+}
+
+.reduced-padding{
+  padding: 8px 8px !important;
+}
+
+.div-left-line{
+  border-left: 2px solid #9370db;
 }
 
 .login-form h2 {

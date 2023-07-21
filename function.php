@@ -162,6 +162,24 @@
         }
     }
 
+    function traverseLinkedList($list, $q_ID) {
+        $currentNode = $list->head;
+        $count = 0;
+        
+        while ($currentNode !== null) {
+            $queue = $currentNode->data;
+            $count++;
+            
+            if ($queue->q_ID === $q_ID) {
+                break; // Found the matching ID, break the loop
+            }
+            
+            $currentNode = $currentNode->after;
+        }
+        
+        return $count;
+    }
+
     function enqueue($conn, $queue, $holdQueueType = null){
         if(is_null($holdQueueType))
             $holdQueueType = $queue->q_type;
@@ -415,21 +433,52 @@
         $secondLevelLength = getQueueLengthFromInstance(readQueueInstance($conn, "SLQ"));
         //sum of all lengths
         $sum = $appointmentLength+$generalLength+$secondLevelLength+1;
+        //return $sum;
+
         //get number of present doctors
-        $presentDr = countAllPresentDr($conn)+1;
+        $presentDr = countAllPresentDr($conn);
+
         //calculate current crowd score = sum all patients queueing / number of doctors
         $tempVal = $sum/$presentDr;
+        //return $tempVal;
         //echo "<script>alert('Current score: ".$tempVal."')</script>";
         //set which CBQ preset to be used based on score
+
+        $sql = "SELECT cbq_minSupport FROM cbq WHERE PRESET = 'LOW'";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+        $lowMinSupp = $result->cbq_minSupport;
+
+        $sql = "SELECT cbq_minSupport FROM cbq WHERE PRESET = 'MEDIUM'";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+        $medMinSupp = $result->cbq_minSupport;
+
+        $sql = "SELECT cbq_minSupport FROM cbq WHERE PRESET = 'HIGH'";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
+        $highMinSupp = $result->cbq_minSupport;
+        //return $highMinSupp;
+        if($tempVal >= $highMinSupp){
+            $target = 'HIGH';
+        }elseif($tempVal >= $medMinSupp){
+            $target = 'MEDIUM';
+        }else{
+            $target = 'LOW';
+        }
+
         $pdo_statement = $conn->prepare("UPDATE cbq
                 SET cbq_active = 'T'
-                WHERE :val BETWEEN cbq_minSupport AND cbq_maxSupport");
-            if($pdo_statement->execute([':val'=>$tempVal])){
+                WHERE PRESET = :target");
+            if($pdo_statement->execute([':target'=>$target])){
                 $pdo_statement = $conn->prepare("UPDATE cbq
                 SET cbq_active = 'F'
-                WHERE :val  NOT BETWEEN cbq_minSupport AND cbq_maxSupport");
+                WHERE PRESET != :target");
                 //return 1 upon success, -1 otherwise
-                if($pdo_statement->execute([':val'=>$tempVal]))
+                if($pdo_statement->execute([':target'=>$target]))
                     return 1;
                 else
                     return -1;
@@ -501,18 +550,25 @@
             $auth_type = "PER";
             require 'connect.php';
         }
-        $sql = "SELECT clinic_LatLng FROM clinic";
+        
+        $sql = "SELECT clinic_LatLng, clinic_maxRadius FROM clinic";
         $pdo_statement = $conn->prepare($sql);
         $pdo_statement->execute();
-        $result=$pdo_statement->fetch(PDO::FETCH_LAZY);
-        $clinicLatLng = $result->clinic_LatLng;
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        $latlng = $result->clinic_LatLng;
+        
+        $startIndex = strpos($latlng, "(") + 1;
+        $endIndex = strpos($latlng, ")");
+        $coordinates = explode(",", substr($latlng, $startIndex, $endIndex - $startIndex));
+        $latitude = floatval(trim($coordinates[0]));
+        $longitude = floatval(trim($coordinates[1]));
 
         $earthRadius = 6371000; // Radius of the Earth in meters
     
         //clinic's LatLng
-        [$lat1, $lon1] = array_map('trim', explode(',', $clinicLatLng));
-        $lat1 = floatval($lat1);
-        $lon1 = floatval($lon1);
+        //[$lat1, $lon1] = array_map('trim', explode(',', $clinicLatLng));
+        $lat1 = floatval($latitude);
+        $lon1 = floatval($longitude);
     
         //user LatLng
         [$lat2, $lon2] = array_map('trim', explode(',', $userLatLng));
@@ -534,9 +590,9 @@
         $maxRadius = (float) $result->clinic_maxRadius;
         //return round($distance, 2).", ".round($maxRadius, 2);
         if (round($distance, 5) <= round($maxRadius, 5)) {
-            return true;
+            return "1";
         } else {
-            return false;
+            return "0";
         }
     }
     
@@ -754,6 +810,21 @@
         $SLQInstance = readQueueInstance($conn, "SLQ");
         $APQInstance = readQueueInstance($conn, "APQ");
         $GPQInstance = readQueueInstance($conn, "GPQ");
+        /*
+        $SLQJSON = $SLQInstance;
+        if(!$SLQInstance instanceof LinkedList){
+            $SLQJSON = 0;
+        }
+
+        $APQJSON = $APQInstance;
+        if(!$APQInstance instanceof LinkedList){
+            $APQJSON = 0;
+        }
+
+        $GPQJSON = $GPQInstance;
+        if(!$GPQInstance instanceof LinkedList){
+            $GPQJSON = 0;
+        }*/
     
         $SLQJSON = $SLQInstance instanceof LinkedList ? $SLQInstance->toJSON() : 0;
         $APQJSON = $APQInstance instanceof LinkedList ? $APQInstance->toJSON() : 0;
@@ -903,6 +974,27 @@
         return $flag;
     }
 
+    function compareDatetime($userDatetime, $appTime, $earlyTolerance, $lateTolerance){
+        $userTimestamp = strtotime($userDatetime);
+        $appTimestamp = strtotime($appTime);
+
+        // Calculate the early and late datetime boundaries
+        $earlyBoundary = $appTimestamp - ($earlyTolerance * 60);
+        $lateBoundary = $appTimestamp + ($lateTolerance * 60);
+
+        if ($userTimestamp < $earlyBoundary) {
+            return -1; // User is too early
+        } elseif ($userTimestamp >= $earlyBoundary && $userTimestamp <= $lateBoundary) {
+            return 0; // User is within or exactly on time
+        } elseif ($userTimestamp > $lateBoundary) {
+            return 1; // User is late for the appointment
+        }
+
+        return -9; // Return -9 by default if the comparison fails
+    }
+
+
+
     function insertAppointment($conn, $queue, $datetime, $personnelID=null){
         if($conn == null){
             $auth_type = "PER";
@@ -992,7 +1084,23 @@
         }
     }
 
-    function searchAppointmentByEmail($conn, $ID, $IC){
+    function fetchPatientByEmail($conn, $email){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $sql = "SELECT * FROM patient WHERE patient_email=:targetEmail";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':targetEmail'=>$email]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            return $result;
+        }else{
+            return 0;
+        }
+    }
+
+    function searchAppointmentByEmail($conn, $email){
         if($conn == null){
             $auth_type = "PER";
             require 'connect.php';
@@ -1020,8 +1128,12 @@
                 $pdo_statement = $conn->prepare($sql);
                 $pdo_statement->execute([':target'=>$appointment->svc_code]);
                 $resultSvc=$pdo_statement->fetch(PDO::FETCH_OBJ);
-
-                $create = new AppointmentQueue($resultApp->app_datetime, $resultSvc->svc_desc);
+                if($resultSvc == null || $resultSvc === null ){
+                    $create = new AppointmentQueue($resultApp->app_datetime, "NaN");
+                }else{
+                    $create = new AppointmentQueue($resultApp->app_datetime, $resultSvc->svc_desc);
+                }
+                
                 array_push($fetchAppointments, $create);
             }
             return json_encode($fetchAppointments);
@@ -1131,7 +1243,26 @@
         $sqlDateTime = $dateTime->format('Y-m-d H:i:s');
       
         return $sqlDateTime;
-      }
-      
+    }
+
+    function checkQueueByIC($conn, $ic){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $sql = "SELECT * FROM queue WHERE patient_ICNum=:target AND q_type<>'APP'";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':target'=>$ic]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            return $result;
+        }else{
+            return 0;
+        }
+    }
+
+
+
+
 
 ?>

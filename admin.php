@@ -189,6 +189,7 @@
                 break;
             case "appointment":
                 $pk = "q_ID";
+                $type = "queue";
                 break;
             case "queue":
                 $pk = "q_ID";

@@ -12,7 +12,10 @@
         $APQJSON = $result[1];
         $GPQJSON = $result[2];
         refreshCBQPreset($conn);
-        echo json_encode([$SLQJSON, $APQJSON, $GPQJSON]);
+        //echo json_encode([$SLQJSON, $APQJSON, $GPQJSON]);
+        echo $SLQJSON."##@@!!".$APQJSON."##@@!!".$GPQJSON;
+        //$test = readQueueInstance($conn, "GPQ");
+        //var_dump($test->toJSON());
     }
 
     if(strcmp($q,  "progressQueue") == 0){
@@ -85,8 +88,28 @@
     if(strcmp($q, "setClinicCap") == 0){
         $val = floatval($_REQUEST["value"]);
         $status = setClinicCapacity($conn, $val);
-        refreshCBQPreset($conn);
-        echo $status;
+        $status1 = refreshCBQPreset($conn);
+        if($status == 1 && $status1 == 1)
+            echo 1;
+        else
+            echo -1;
+    }
+
+    if(strcmp($q, "fetchPatientAverage") == 0){
+        $appointmentLength = getQueueLengthFromInstance(readQueueInstance($conn, "APQ"));
+        $generalLength = getQueueLengthFromInstance(readQueueInstance($conn, "GPQ"));
+        $secondLevelLength = getQueueLengthFromInstance(readQueueInstance($conn, "SLQ"));
+        //sum of all lengths
+        $sum = $appointmentLength+$generalLength+$secondLevelLength+1;
+        //return $sum;
+
+        //get number of present doctors
+        $presentDr = countAllPresentDr($conn);
+        
+        //calculate current crowd score = sum all patients queueing / number of doctors
+        $tempVal = $sum/$presentDr;
+
+        echo $tempVal."?".$sum."?".$presentDr;
     }
 
     if(strcmp($q, "dequeuePatient") == 0){

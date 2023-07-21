@@ -60,7 +60,7 @@
 			<div>
 				<button id="testInitMap" onclick="echoLatLng()" hidden>Test init map</button>
 			</div>
-			<div class="card" id="headingDequeue">
+			<div class="card reduced-padding" id="headingDequeue">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseDequeue" aria-expanded="false" aria-controls="collapseDequeue">
 					<div class="card-header">
 						<h6>Patient</h6>
@@ -90,8 +90,61 @@
 					</div>
 				</div>
 			</div>
+			<div class="card reduced-padding" id="headingQueueInsertion">
+				<button  class="btn" data-toggle="collapse" data-target="#collapseQueueInsertion" aria-expanded="false" aria-controls="collapseQueueInsertion">
+					<div class="card-header">
+						<h6>Queue Controls</h6>
+					</div>
+				</button>
+				<div  id="collapseQueueInsertion" class="collapse" aria-labelledby="headingQueueInsertion" data-parent="#headingQueueInsertion">
+					<div class="card-body">
+						<div class="row">
+							<button id="refreshProgressQueue" onclick="refreshProgressQueue()" class="btn btn-outline-primary">
+							<i class="bi bi-arrow-clockwise h4"></i>
+							</button>
+							<button id="clearQueue" onclick="clearQueue()" class="btn btn-outline-danger delete-btn">
+							<i class="bi bi-x-circle h4" ></i>
+							</button>
+							<div class="row row-top-margin div-left-line">
+								<div>
+									<p><b>General Patient Queue</b></p>
+								</div>
+								<div class="col-md">
+									<input  class="col-md form-control" type="text" id="inputInsertGPQPatientICNum" placeholder="Patient IC">
+								</div>
+								<div class="col-sm-auto">
+									<button  class="col- btn btn-outline-dark" id="dummyGPQ" onclick="dummyGPQ()">GPQ</button>
+								</div>
+							</div>
+							<div class="row row-top-margin div-left-line">
+								<div>
+									<p><b>Appointment Patient Queue</b></p>
+								</div>
+								<div class="col-md">
+									<input  class="col-md form-control" type="text" id="inputDummyAPQ" placeholder="Appointment id">
+								</div>
+								<div class="col-sm-auto">
+									<button onclick="processIntoAPQ()" class="btn btn-outline-dark">APQ</button>
+								</div>
+							</div>
+								<div class="row row-top-margin div-left-line">
+								<div>
+									<p><b>Late Patient Queue</b></p>
+								</div>
+								<div class="col-md">
+									<input  class="col-md form-control" class="col-md" type="text" id="inputDummyCBQ" placeholder="Appointment id">
+								</div>
+								<div class="col-sm-auto">
+									<button onclick="processCBQ()" class="col- btn btn-outline-dark">CBQ</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
+
 	<!-- container -->
 	<div class="container">
 		
@@ -99,26 +152,11 @@
 			<div class="card card-myconfig"  id="headingQueue">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseQueue" aria-expanded="false" aria-controls="collapseQueue">
 					<div class="card-header">
-						<h2>Manage Queue</h2>
+						<h2>Queue</h2>
 					</div>
 				</button>
 				<div  id="collapseQueue" class="collapse" aria-labelledby="headingQueue" data-parent="#headingQueue">
 					<div class="col card-body" id="queueColumn">
-						<button id="refreshQueue" onclick="fetchQueue()" class="button">Refresh</button>
-						<button id="progressQueue" onclick="progressQueue()" class="button">Progress Queue</button>
-						<div>
-							<input type="text" id="inputInsertGPQPatientICNum" placeholder="Enter Patient IC">
-							<button id="dummyGPQ" onclick="dummyGPQ()" class="button">Insert Dummy GPQ</button>
-						</div>
-						<button id="clearQueue" onclick="clearQueue()" class="button">CLEAR QUEUE</button>
-						<div class="input-container">
-							<input type="text" id="inputDummyAPQ" placeholder="Enter an appointment id">
-							<button onclick="processIntoAPQ()" class="button">Stimulate APQ</button>
-						</div>
-						<div class="input-container">
-							<input type="text" id="inputDummyCBQ" placeholder="Enter an appointment id">
-							<button onclick="processCBQ()" class="button">Stimulate CBQ</button>
-						</div>
 						<div class="display-table-container">
 							<h3>Second Level Queue</h3>
 							<table id="displayPatientSLQ" class="display-table">
@@ -166,7 +204,7 @@
 			<div class="card card-myconfig" id="headingAppointment">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseAppointment" aria-expanded="false" aria-controls="collapseAppointment">
 					<div class="card-header">
-						<h2>Manage Appointment</h2>
+						<h2>Appointment</h2>
 					</div>
 				</button>
 				<div  id="collapseAppointment" class="collapse" aria-labelledby="headingAppointment" data-parent="#headingAppointment">
@@ -183,6 +221,7 @@
 									<th>ID</th>
 									<th>Personnel ID</th>
 									<th>Date Time</th>
+									<th>Delete</th>
 								</tr>
 							</table>
 						</div>
@@ -195,7 +234,7 @@
 			<div class="card card-myconfig" id="headingPatient">
 				<button  class="btn" data-toggle="collapse" data-target="#collapsePatient" aria-expanded="false" aria-controls="collapsePatient">
 					<div class="card-header">
-						<h2>Manage Patient</h2>
+						<h2>Patient</h2>
 					</div>
 				</button>
 				<div  id="collapsePatient" class="collapse" aria-labelledby="headingPatient" data-parent="#headingPatient">
@@ -206,6 +245,8 @@
 						<button class="btn btn-outline-success" id="btnInsertPatient" onclick="showInsertionModal('patient')">
 							<i class="bi bi-person-plus h4"></i>
 						</button>
+							<input type="text" id="searchBarPatient" class="input">
+							<label for="searchBarPatient"><i class="bi bi-search"></i></label>
 						<div class="table-container">
 							<table id="displayPatient" class="display-table">
 								<tr>
@@ -229,7 +270,7 @@
 			<div class="card card-myconfig" id="headingPersonnel">
 				<button  class="btn" data-toggle="collapse" data-target="#collapsePersonnel" aria-expanded="false" aria-controls="collapsePersonnel">
 					<div class="card-header">
-						<h2>Manage Personnel</h2>
+						<h2>Personnel</h2>
 					</div>
 				</button>
 				<div  id="collapsePersonnel" class="collapse" aria-labelledby="headingPersonnel" data-parent="#headingPersonnel">
@@ -240,6 +281,8 @@
 						<button class="btn btn-outline-success" id="btnInsertPersonnel" onclick="showInsertionModal('personnel')">
 							<i class="bi bi-person-plus h4"></i>
 						</button>
+						<input type="text" id="searchBarPersonnel" class="input">
+						<label for="searchBarPersonnel"><i class="bi bi-search"></i></label>
 						<div class="table-container">
 							<table id="displayPersonnel" class="display-table">
 								<tr>
@@ -267,7 +310,7 @@
 			<div class="card card-myconfig" id="headingDepartment">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseDepartment" aria-expanded="false" aria-controls="collapseDepartment">
 					<div class="card-header">
-						<h2>Manage Department</h2>
+						<h2>Department</h2>
 					</div>
 				</button>
 				<div  id="collapseDepartment" class="collapse" aria-labelledby="headingDepartment" data-parent="#headingDepartment">
@@ -278,6 +321,8 @@
 						<button class="btn btn-outline-success" id="btnInsertDepartment" onclick="showInsertionModal('department')">
 							<i class="bi bi-journal-plus h4"></i>
 						</button>
+						<input type="text" id="searchBarDepartment" class="input">
+						<label for="searchBarDepartment"><i class="bi bi-search"></i></label>
 						<div class="table-container">
 							<table id="displayDepartment" class="display-table">
 								<tr>
@@ -298,7 +343,7 @@
 			<div class="card card-myconfig" id="headingService">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseService" aria-expanded="false" aria-controls="collapseService">
 					<div class="card-header">
-						<h2>Manage Service</h2>
+						<h2>Service</h2>
 					</div>
 				</button>
 				<div  id="collapseService" class="collapse" aria-labelledby="headingService" data-parent="#headingService">
@@ -309,6 +354,8 @@
 						<button class="btn btn-outline-success" id="btnInsertService" onclick="showInsertionModal('service')">
 							<i class="bi bi-clipboard-plus h4"></i>
 						</button>
+						<input type="text" id="searchBarService" class="input">
+						<label for="searchBarService"><i class="bi bi-search"></i></label>
 						<div class="table-container">
 							<table id="displayService" class="display-table">
 								<tr>
@@ -372,6 +419,9 @@
 							</div>
 						</div>
 						<button id="fetchCBQConfiq" onclick="fetchCBQConfig()" class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise h4"></i></button>
+						<p>Currently patient per present doctor: <span id="outputPatientPerDr"></span></p>
+						<p>Queue length: <span id="outputQueueLength"></span></p>
+						<p>Doctors present: <span id="outputDrCount"></span></p>
 						<div class="table-container">
 							<table id="displayCBQConfig" class="display-table">
 								<tr>
