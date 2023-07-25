@@ -162,7 +162,7 @@
         }
     }
 
-    function traverseLinkedList($list, $q_ID) {
+    function traverseLinkedList($list, $q_ID=null) {
         $currentNode = $list->head;
         $count = 0;
         
@@ -170,8 +170,10 @@
             $queue = $currentNode->data;
             $count++;
             
-            if ($queue->q_ID === $q_ID) {
-                break; // Found the matching ID, break the loop
+            if($q_ID != null){
+                if ($queue->q_ID === $q_ID) {
+                    break; // Found the matching ID, break the loop
+                }
             }
             
             $currentNode = $currentNode->after;
@@ -280,6 +282,12 @@
         $pdo_statement = $conn->prepare($sql);
         $pdo_statement->execute([':targetID' => $queue->q_ID]);
 
+        $sql = "DELETE FROM queue WHERE q_ID=:targetID";
+        $pdo_statement = $conn->prepare($sql);
+        if(!$pdo_statement->execute([':targetID'=>$queue->q_ID])){
+            return -1;
+        }
+
         if ($pdo_statement->rowCount() == 0) {
             return -1;
         } else {
@@ -293,12 +301,10 @@
         }
         //if GPQ exists, use CBQ
         refreshCBQPreset($conn);
+        //return var_dump($queue);
         $queue->setType("GPQ");
-        $sql = "DELETE FROM queue WHERE q_ID=:targetID";
-        $pdo_statement = $conn->prepare($sql);
-        if(!$pdo_statement->execute([':targetID'=>$queue->q_ID])){
-            return -1;
-        }
+        
+
         $sql = "DELETE FROM appointment WHERE q_ID=:targetID";
         $pdo_statement = $conn->prepare($sql);
         if(!$pdo_statement->execute([':targetID'=>$queue->q_ID])){
@@ -954,12 +960,13 @@
         $flag = 0;
         if($queue->q_type == "APP" || $queue->q_type === "APP"){
             $pdo_statement = $conn->prepare("INSERT INTO
-                queue(q_ID, patient_ICNum, q_type)
-                VALUES (:q_ID, :patient_ICNum, :q_type)");
+                queue(q_ID, patient_ICNum, q_type, svc_code)
+                VALUES (:q_ID, :patient_ICNum, :q_type, :svc_code)");
             if($pdo_statement->execute([
                 ':q_ID'=>$queue->q_ID,
                 ':patient_ICNum'=>$queue->patient_ICNum,
-                ':q_type'=>$queue->q_type])){
+                ':q_type'=>$queue->q_type,
+                ':svc_code'=>$queue->svc_code])){
                     $flag = 1;
                 }
 
@@ -1084,6 +1091,22 @@
         }
     }
 
+    function searchPatientByICNum($conn, $ic){
+        if($conn == null){
+            $auth_type = "PER";
+            require 'connect.php';
+        }
+        $sql = "SELECT * FROM patient WHERE patient_ICNum=:targetIC";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([':targetIC'=>$ic]);
+        $result=$pdo_statement->fetch(PDO::FETCH_OBJ);
+        if($result != null && $result !== null){
+            return 1;
+        }else{
+            return 0;
+        }
+    }
+
     function fetchPatientByEmail($conn, $email){
         if($conn == null){
             $auth_type = "PER";
@@ -1123,12 +1146,12 @@
                 $pdo_statement = $conn->prepare($sql);
                 $pdo_statement->execute([':target'=>$appointment->q_ID]);
                 $resultApp=$pdo_statement->fetch(PDO::FETCH_OBJ);
-
+                //echo $appointment
                 $sql = "SELECT * FROM service WHERE svc_code=:target";
                 $pdo_statement = $conn->prepare($sql);
                 $pdo_statement->execute([':target'=>$appointment->svc_code]);
                 $resultSvc=$pdo_statement->fetch(PDO::FETCH_OBJ);
-                if($resultSvc == null || $resultSvc === null ){
+                if(is_bool($resultSvc)){
                     $create = new AppointmentQueue($resultApp->app_datetime, "NaN");
                 }else{
                     $create = new AppointmentQueue($resultApp->app_datetime, $resultSvc->svc_desc);
@@ -1197,6 +1220,43 @@
 
         } else {
             return "-2"; // Date condition not satisfied
+        }
+
+        // Get the appointment time in the correct format (Y-m-d H:i:s)
+        $appointmentTime = $date->format('Y-m-d H:i:s');
+        
+        $sql = "SELECT * FROM clinic";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute();
+        $result = $pdo_statement->fetch(PDO::FETCH_OBJ);
+        //$result = json_decode($result);
+        //return (var_dump($result));
+        $allowedInterval = $result->clinic_appointmentInterval;
+        $startString = "-".$allowedInterval." minutes";
+        $endString = "+".($allowedInterval*2)." minutes";
+
+        // Calculate the time range (15 minutes before and after the given time)
+        $startRange = $date->modify($startString)->format('Y-m-d H:i:s');
+        $endRange = $date->modify($endString)->format('Y-m-d H:i:s');
+
+        // Reset the date object back to the original appointment time
+        $date->modify($startString);
+
+        // Prepare and execute the SQL query to check for existing appointments within the range
+        $sql = "SELECT COUNT(*) as count FROM appointment WHERE app_datetime BETWEEN :startRange AND :endRange OR app_datetime = :appointmentTime";
+        $pdo_statement = $conn->prepare($sql);
+        $pdo_statement->execute([
+            ":startRange" => $startRange,
+            ":endRange" => $endRange,
+            ":appointmentTime" => $appointmentTime
+        ]);
+
+        // Fetch and return the result
+        $result = $pdo_statement->fetch(PDO::FETCH_ASSOC);
+        $count = $result['count'];
+
+        if($count > 0){
+            return "-3"; //overlapping appointment, 15 minutes threshold
         }
 
 

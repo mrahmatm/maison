@@ -921,6 +921,67 @@ closeBtn.addEventListener('click', function () {
 var attendSwitch = document.getElementById('attendSwitch');
 var attendSwitchStatus = document.getElementById('attendSwitchStatus');
 
+// Dynamically set window size based on screen size
+function setWindowSize() {
+  var screenWidth = window.innerWidth;
+  var screenHeight = window.innerHeight;
+  var windowWidth = Math.min(0.8 * screenWidth, 400);
+  var windowHeight = Math.min(0.8 * screenHeight, 328);
+
+  floatingWindow.style.width = windowWidth + 'px';
+  //floatingWindow.style.height = windowHeight + 'px';
+}
+
+// Call setWindowSize initially and on window resize
+setWindowSize();
+window.addEventListener('resize', setWindowSize);
+
+// Functions for dragging the window
+function startDragging(e) {
+  if (e.target.tagName.toLowerCase() === 'input') {
+    return; // Ignore dragging when clicking inside an input field
+  }
+  e.preventDefault();
+  isDragging = true;
+  if (e.type === 'touchstart') {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  } else {
+    startX = e.clientX;
+    startY = e.clientY;
+  }
+  windowOffsetX = floatingWindow.offsetLeft;
+  windowOffsetY = floatingWindow.offsetTop;
+}
+
+function dragWindow(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  var x, y;
+  if (e.type === 'touchmove') {
+    x = e.touches[0].clientX;
+    y = e.touches[0].clientY;
+  } else {
+    x = e.clientX;
+    y = e.clientY;
+  }
+  var deltaX = x - startX;
+  var deltaY = y - startY;
+  var windowX = windowOffsetX + deltaX;
+  var windowY = windowOffsetY + deltaY;
+
+  windowX = Math.max(0, windowX);
+  windowY = Math.max(0, windowY);
+
+  floatingWindow.style.left = windowX + 'px';
+  floatingWindow.style.top = windowY + 'px';
+}
+
+
+function stopDragging() {
+  isDragging = false;
+}
+
 async function toggleAttend(status) {
   return new Promise(resolve => {
     var xmlhttp = new XMLHttpRequest();
@@ -945,57 +1006,6 @@ async function toggleAttend(status) {
     xmlhttp.send();
   });
 }
-
-// Dynamically set window size based on screen size
-function setWindowSize() {
-  var screenWidth = window.innerWidth;
-  var screenHeight = window.innerHeight;
-  var windowWidth = Math.min(0.8 * screenWidth, 400);
-  var windowHeight = Math.min(0.8 * screenHeight, 328);
-
-  floatingWindow.style.width = windowWidth + 'px';
-  //floatingWindow.style.height = windowHeight + 'px';
-}
-
-// Call setWindowSize initially and on window resize
-setWindowSize();
-window.addEventListener('resize', setWindowSize);
-
-// Functions for dragging the window
-function startDragging(e) {
-  if (e.target.tagName.toLowerCase() === 'input') {
-    return; // Ignore dragging when clicking inside an input field
-  }
-  e.preventDefault();
-  isDragging = true;
-  startX = e.clientX || e.touches[0].clientX;
-  startY = e.clientY || e.touches[0].clientY;
-  windowOffsetX = floatingWindow.offsetLeft;
-  windowOffsetY = floatingWindow.offsetTop;
-}
-
-function dragWindow(e) {
-  if (!isDragging) return;
-  e.preventDefault();
-  var x = e.clientX || e.touches[0].clientX;
-  var y = e.clientY || e.touches[0].clientY;
-  var deltaX = x - startX;
-  var deltaY = y - startY;
-  var windowX = windowOffsetX + deltaX;
-  var windowY = windowOffsetY + deltaY;
-
-  windowX = Math.max(0, windowX);
-  windowY = Math.max(0, windowY);
-
-  floatingWindow.style.left = windowX + 'px';
-  floatingWindow.style.top = windowY + 'px';
-}
-
-function stopDragging() {
-  isDragging = false;
-}
-
-
 
 //attend switch
 var attendSwitch = document.getElementById('attendSwitch');
@@ -1477,6 +1487,7 @@ function isMalaysiaICNumber(icNumber) {
       // Perform validations (if required)
       var patient_ICNumApp = document.getElementById("inputPatientICNumApp").value;
       var serviceDropdownApp = document.getElementById("serviceDropdownApp").value;
+      //alert("value of service: "+serviceDropdownApp);
       var inputDateApp = document.getElementById("inputDateApp").value;
       var inputTimeApp = document.getElementById("inputTimeApp").value;
   

@@ -51,15 +51,6 @@
 			<button class="btn btn-outline-danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
 		</div>
 		<div class="window-content">
-			<div>
-				<h3 id="userGreetingExia"></h3>
-			</div>
-			<div>
-				
-			</div>
-			<div>
-				<button id="testInitMap" onclick="echoLatLng()" hidden>Test init map</button>
-			</div>
 			<div class="card reduced-padding" id="headingDequeue">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseDequeue" aria-expanded="false" aria-controls="collapseDequeue">
 					<div class="card-header">
@@ -113,7 +104,7 @@
 									<input  class="col-md form-control" type="text" id="inputInsertGPQPatientICNum" placeholder="Patient IC">
 								</div>
 								<div class="col-sm-auto">
-									<button  class="col- btn btn-outline-dark" id="dummyGPQ" onclick="dummyGPQ()">GPQ</button>
+									<button  class="col- btn btn-outline-dark" id="dummyGPQ" onclick="dummyGPQ()"><i class="bi bi-chevron-double-right"></i></button>
 								</div>
 							</div>
 							<div class="row row-top-margin div-left-line">
@@ -124,7 +115,7 @@
 									<input  class="col-md form-control" type="text" id="inputDummyAPQ" placeholder="Appointment id">
 								</div>
 								<div class="col-sm-auto">
-									<button onclick="processIntoAPQ()" class="btn btn-outline-dark">APQ</button>
+									<button onclick="processIntoAPQ()" class="btn btn-outline-dark"><i class="bi bi-chevron-double-right"></i></button>
 								</div>
 							</div>
 								<div class="row row-top-margin div-left-line">
@@ -135,7 +126,7 @@
 									<input  class="col-md form-control" class="col-md" type="text" id="inputDummyCBQ" placeholder="Appointment id">
 								</div>
 								<div class="col-sm-auto">
-									<button onclick="processCBQ()" class="col- btn btn-outline-dark">CBQ</button>
+									<button onclick="processCBQ()" class="col- btn btn-outline-dark"><i class="bi bi-chevron-double-right"></i></button>
 								</div>
 							</div>
 						</div>

@@ -34,12 +34,29 @@
             }
         }
 
+        function checkEmail($conn){
+            if($conn == null){
+                $auth_type = "PER";
+                require 'connect.php';
+            }
+
+            $pdo_statement = $conn->prepare("SELECT * FROM patient WHERE patient_email=:target");
+            $pdo_statement->execute([':target'=>$this->patient_email]);
+            $result = $pdo_statement->fetch();
+
+            if($result >  0){
+                return 1;
+            }else{
+                return 0;
+            }
+        }
+
         function addPatient($conn){
             if($conn == null){
                 $auth_type = "PER";
                 require 'connect.php';
             }
-            if($this->checkICNum($conn) == 0){
+            if($this->checkICNum($conn) == 0 && $this->checkEmail($conn) == 0){
                 $pdo_statement = $conn->prepare("INSERT INTO
                     patient(patient_ICNum, patient_name, patient_gender, patient_age, patient_email, patient_phoneNum)
                     VALUES (:patient_ICNum, :patient_name, :patient_gender, :patient_age, :patient_email, :patient_phoneNum)");
@@ -500,13 +517,11 @@
         public $patient_ICNum;
         public $svc_code;
 
-        function __construct($type, $patient_ICNum, $svc_code="NULL"){
-            $this->q_ID=randomNumber(3);
-            //$this->q_ID = $id;
+        function __construct($type, $patient_ICNum, $svc_code = null) {
+            $this->q_ID = randomNumber(3);
             $this->q_type = $type;
             $this->patient_ICNum = $patient_ICNum;
-            if($svc_code != "NULL")
-                $this->svc_code = $svc_code;
+            $this->svc_code = $svc_code;
         }
 
         function setBefore($beforeID){
