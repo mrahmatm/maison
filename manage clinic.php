@@ -49,7 +49,31 @@
         echo $jsonData;
     }
 
-    if(strcmp($q,  "fetchClinicCap") == 0){
-        echo fetchClinicCap($conn);
+    if(strcmp($q,  "fetchClinicConfig") == 0){
+        echo fetchClinicConfig($conn);
+    }
+
+    if(strcmp($q, "updateTimeSettings") == 0){
+        $interval = $_REQUEST["interval"];
+        $early = $_REQUEST["earlyTolerance"];
+        $late = $_REQUEST["lateTolerance"];
+        $sql = "UPDATE clinic SET clinic_appointmentInterval=:input1, clinic_earlyTolerance=:input2, clinic_lateTolerance=:input3";
+        $pdo_statement = $conn->prepare($sql);
+        $status = 1;
+        $response = "Updated clinic time configs!";
+        if(!$pdo_statement->execute([
+            ':input1' => $interval,
+            ':input2' => $early,
+            ':input3' => $late
+        ])){
+            $status = 0;
+            $response = "Error updating time configs!";
+        }
+        $returnVal = array(
+            'code' => $status,
+            'response' => $response
+        );
+        $jsonData = json_encode($returnVal);
+        echo $jsonData;
     }
 ?>

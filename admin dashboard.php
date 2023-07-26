@@ -30,9 +30,7 @@
 		<div class="icon-container">
 			<img src="media/maison-logo.png" id="navBarLogo">
 		</div>
-		<div>
-			<h5>Currently waiting : <span id="displayCurrentQueueLength"></span></h5>
-		</div>
+
 	</nav>
 
 	<!-- floating window -->
@@ -210,7 +208,9 @@
 							<table id="displayAppointment" class="display-table">
 								<tr>
 									<th>ID</th>
+									<th>Name</th>
 									<th>Personnel ID</th>
+									<th>Service</th>
 									<th>Date Time</th>
 									<th>Delete</th>
 								</tr>
@@ -367,7 +367,7 @@
 			<div class="card card-myconfig" id="headingCBQ">
 				<button  class="btn" data-toggle="collapse" data-target="#collapseCBQ" aria-expanded="false" aria-controls="collapseCBQ" id="toggleCBQSectionButton">
 					<div class="card-header">
-						<h2>CBQ Config</h2>
+						<h2>Clinic</h2>
 					</div>
 				</button>
 				<div  id="collapseCBQ" class="collapse" aria-labelledby="headingCBQ" data-parent="#headingCBQ">
@@ -397,14 +397,47 @@
 						<div class="card" id="headingCap">
 							<button  class="btn" data-toggle="collapse" data-target="#collapseCap" aria-expanded="false" aria-controls="collapseCap">
 								<div class="card-header">
-									<h6>Set clinic capacity</h6>
+									<h6>Clinic Capacity Settings</h6>
 								</div>
 							</button>
 							<div  id="collapseCap" class="collapse" aria-labelledby="headingCap" data-parent="#headingCap">
 								<div class="card-body">
 									<div class="row">
-										<input type="text" id="inputClinicCapacity" placeholder="Enter capacity" style="text-align:center;">
+										<label for="inputClinicCapacity">Clinic capacity:</label>
+										<input type="number" id="inputClinicCapacity" placeholder="Enter capacity" style="text-align:center;">
+									</div>
+									<div class="row">
+										<label for="inputSLQMaxSize">Seond Level Queue (SLQ) Maximum Size:</label>
+										<input type="number" id="inputSLQMaxSize" placeholder="Enter capacity" style="text-align:center;">
 										<button onclick="setClinicCapacity()" class="button" style="margin-top: 10px;">Set Capacity</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card" id="headingTimeSettings">
+							<button  class="btn" data-toggle="collapse" data-target="#collapseTimeSet" aria-expanded="false" aria-controls="collapseTimeSet">
+								<div class="card-header">
+									<h6>Set Appointment Configs</h6>
+								</div>
+							</button>
+							<div  id="collapseTimeSet" class="collapse" aria-labelledby="headingTimeSettings" data-parent="#headingTimeSettings">
+								<div class="card-body">
+									<div class="row">
+										<label for="inputAppointmentInterval">Interval between appointments (minutes): </label>
+										<input type="number" id="inputAppointmentInterval" placeholder="Enter interval (minutes)" style="text-align:center;">
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="row">
+									<label for="inputEarlyTolerance">Tolerance for early appointment (minutes): </label>
+										<input type="number" id="inputEarlyTolerance" placeholder="Enter early tolerance (minutes)" style="text-align:center;">
+									</div>
+								</div>
+								<div class="card-body">
+									<div class="row">
+									<label for="inputLateTolerance">Tolerance for late appointment (minutes): </label>
+										<input type="number" id="inputLateTolerance" placeholder="Enter late tolerance (minutes)" style="text-align:center;">
+										<button onclick="updateTimeSettings()" class="button" style="margin-top: 10px;">Update Appointment Configs</button>
 									</div>
 								</div>
 							</div>

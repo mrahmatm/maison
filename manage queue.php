@@ -87,7 +87,8 @@
 
     if(strcmp($q, "setClinicCap") == 0){
         $val = floatval($_REQUEST["value"]);
-        $status = setClinicCapacity($conn, $val);
+        $val1 = floatval($_REQUEST["value1"]);
+        $status = setClinicCapacity($conn, $val, $val1);
         $status1 = refreshCBQPreset($conn);
         if($status == 1 && $status1 == 1)
             echo 1;

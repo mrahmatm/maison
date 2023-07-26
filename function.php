@@ -509,7 +509,7 @@
         return $result;
     }
 
-    function setClinicCapacity($conn, $cap){
+    function setClinicCapacity($conn, $cap, $cap1){
         if($conn == null){
             $auth_type = "PER";
             require 'connect.php';
@@ -522,9 +522,16 @@
                 return -1;
         }
 
-        $sql = "UPDATE clinic SET clinic_capacity=:newCap";
+        if(!is_int($cap1)){
+            if(is_float($cap1) || is_double($cap1))
+                $cap1 = ceil($cap1);
+            else
+                return -1;
+        }
+
+        $sql = "UPDATE clinic SET clinic_capacity=:newCap, clinic_SLQMaxSize=:newCap1";
         $pdo_statement = $conn->prepare($sql);
-        if($pdo_statement->execute([':newCap'=>$cap])){
+        if($pdo_statement->execute([':newCap'=>$cap, ':newCap1'=>$cap1])){
             $status = refreshCBQPreset($conn);
             if($status == 1 || $status === 1)
                 return 1;
@@ -894,20 +901,18 @@
             $auth_type = "PER";
             require 'connect.php';
         }
-        $sql = "SELECT * FROM appointment";
+
+        $sql = "SELECT a.*, q.*, p.*
+        FROM appointment a
+        JOIN queue q ON a.q_ID = q.q_ID
+        JOIN patient p ON q.patient_ICNum = p.patient_ICNum";
+
         $pdo_statement = $conn->prepare($sql);
         $pdo_statement->execute();
-        $result=$pdo_statement->fetchAll(PDO::FETCH_OBJ);
+        $result = $pdo_statement->fetchAll(PDO::FETCH_OBJ);
+
         if($result != null && $result !== null){
-            //return $result;
-            $fetchAppointments = array();
-            foreach($result as $current){
-                $create = new Appointment($current->q_ID, $current->personnel_ID, $current->app_datetime);
-                //$create->refreshDeptHeadCount($conn);
-                array_push($fetchAppointments,  $create);
-            }
-            return $fetchAppointments;
-            //return $sql;
+            return $result;
             }else{
                 return null;
                 //return $sql;
@@ -933,7 +938,7 @@
         }
     }
 
-    function fetchClinicCap($conn){
+    function fetchClinicConfig($conn){
         if ($conn == null) {
             $auth_type = "PER";
             require 'connect.php';

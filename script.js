@@ -473,6 +473,7 @@ function fetchAppointment() {
           appointmentData = JSON.parse(response);
           appointmentDataArray = [];
           appointmentDataArray = appointmentData;
+          alert(response);
         } else {
           appointmentData = null;
         }
@@ -492,11 +493,15 @@ function fetchAppointment() {
         appointmentData.forEach(function(appointment, index) {
           var row = table.insertRow(index + 1);
           var idCell = row.insertCell(0);
-          var personnelIdCell = row.insertCell(1);
-          var dateTimeCell = row.insertCell(2);
+          var patientName = row.insertCell(1);
+          var personnelIdCell = row.insertCell(2);
+          var serviceCell = row.insertCell(3);
+          var dateTimeCell = row.insertCell(4);
   
           idCell.innerHTML = appointment.q_ID;
+          patientName.innerHTML = appointment.patient_name;
           personnelIdCell.innerHTML = appointment.personnel_ID;
+          serviceCell.innerHTML = appointment.svc_code;
           dateTimeCell.innerHTML = appointment.app_datetime;
   
           // Set the desired timezone
@@ -540,7 +545,7 @@ function fetchAppointment() {
         // Display a message when there is no appointment data
         var emptyRow = table.insertRow(1);
         var emptyCell = emptyRow.insertCell(0);
-        emptyCell.colSpan = "3";
+        emptyCell.colSpan = "6";
         emptyCell.textContent = "No appointments found.";
       }
     }
@@ -551,22 +556,26 @@ function fetchAppointment() {
   xmlhttp.send();
 }
 
-function fetchClinicCap(){
+function fetchClinicConfig(){
   var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
 
             try{
-                clinicCap = JSON.parse(this.responseText);
+                clinicConfig = JSON.parse(this.responseText);
                 //alert(this.responseText);
             }catch{
               alert(this.responseText);
             }
-            document.getElementById("inputClinicCapacity").value = clinicCap.clinic_capacity;
+            document.getElementById("inputClinicCapacity").value = clinicConfig.clinic_capacity;
+            document.getElementById("inputSLQMaxSize").value = clinicConfig.clinic_SLQMaxSize;
+            document.getElementById("inputAppointmentInterval").value = clinicConfig.clinic_appointmentInterval;
+            document.getElementById("inputEarlyTolerance").value = clinicConfig.clinic_earlyTolerance;
+            document.getElementById("inputLateTolerance").value = clinicConfig.clinic_lateTolerance;
         }
     };
 
-    var method = "method=" + "fetchClinicCap";
+    var method = "method=" + "fetchClinicConfig";
     xmlhttp.open("GET", "manage clinic.php?" + method, true);
     xmlhttp.send();
 }
@@ -623,6 +632,7 @@ function fetchCBQConfig() {
             }
 
             fetchPatientAVG();
+            fetchClinicConfig();
         }
     };
 
@@ -796,19 +806,57 @@ function setClinicCapacity(){
             var response = xmlhttp.responseText;
             if (response == 1 || response === 1) {
                 fetchCBQConfig();
+                alert("Updated capacity settings!");
             }
         }
     };
 
     var method = "setClinicCap";
     var value = document.getElementById("inputClinicCapacity").value;
-
+    var value1 = document.getElementById("inputSLQMaxSize").value;
     var url = "manage queue.php";
     url += "?method=" + encodeURIComponent(method);
     url += "&value=" + encodeURIComponent(value);
+    url += "&value1=" + encodeURIComponent(value1);
 
     xmlhttp.open("GET", url, true);
     xmlhttp.send();
+}
+
+function updateTimeSettings(){
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        try{
+          var responseJSON = JSON.parse(this.responseText);
+          if(responseJSON.code == 1 || responseJSON.code == "1"){
+            alert(responseJSON.response);
+            fetchClinicConfig();
+          }
+        }catch(error){
+          alert(this.responseText+", e:" + error);
+        }
+      }
+  };
+
+  var method = "updateTimeSettings";
+  var interval = document.getElementById("inputAppointmentInterval").value;
+  var early = document.getElementById("inputEarlyTolerance").value;
+  var late = document.getElementById("inputLateTolerance").value;
+
+  if(interval < 1 || early < 1 || late < 1){
+    alert("Time settings must be at least 1 minutes!");
+    return;
+  }
+
+  var url = "manage clinic.php";
+  url += "?method=" + encodeURIComponent(method);
+  url += "&interval=" + encodeURIComponent(interval);
+  url += "&earlyTolerance=" + encodeURIComponent(early);
+  url += "&lateTolerance=" + encodeURIComponent(late);
+
+  xmlhttp.open("GET", url, true);
+  xmlhttp.send();
 }
 
 function dummyGPQ(){
@@ -1181,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchCBQConfig();
     fetchAppointment();
     fetchQueue();
-    fetchClinicCap();
+    fetchClinicConfig();
     document.getElementById("toggleCBQSectionButton").click();
 
     setTimeout(function() {
@@ -1442,7 +1490,6 @@ function isMalaysiaICNumber(icNumber) {
     // Check if the cleaned number has 10 digits or more
     return cleanedNumber.length >= 10;
   }
-
 
   function generalInsertion() {
     var xmlhttp = new XMLHttpRequest();
